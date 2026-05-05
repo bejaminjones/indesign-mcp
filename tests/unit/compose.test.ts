@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { Script } from "node:vm";
 import { wrapExtendScript } from "../../src/compose.js";
 
 describe("wrapExtendScript", () => {
@@ -24,5 +25,20 @@ describe("wrapExtendScript", () => {
   it("matches the documented snapshot", () => {
     const body = `return { x: 1 };`;
     expect(wrapExtendScript(body)).toMatchSnapshot();
+  });
+
+  it("emits syntactically valid JavaScript (parse-only)", () => {
+    // Constructing a Script parses without executing — JXA-specific globals
+    // (Application, $, ObjC) are absent from Node, but parse doesn't need them.
+    const cases = [
+      `return { x: 1 };`,
+      `var s = "hi"; return { s: s };`,
+      `// trailing line comment\nreturn { ok: true };`,
+      `return { msg: "she said \\"hi\\"" };`,
+    ];
+    for (const body of cases) {
+      const wrapped = wrapExtendScript(body);
+      expect(() => new Script(wrapped)).not.toThrow();
+    }
   });
 });

@@ -38,7 +38,7 @@ try {
   var wrappedBody =
     "(function(){" +
     "  try {" +
-    "    var __r = (function(){\n" + bodyText + "\n})();" +
+    "    var __r = (function(){\\n" + bodyText + "\\n})();" +
     "    return JSON.stringify({ok:true, result: __r});" +
     "  } catch (e) {" +
     "    return JSON.stringify({" +
