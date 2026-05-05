@@ -6,6 +6,7 @@ import { registerLogger } from "./logger-singleton.js";
 import { getAppVersionTool } from "./tools/get-app-version.js";
 import { createDocumentTool } from "./tools/create-document.js";
 import { addPageTool } from "./tools/add-page.js";
+import { saveDocumentTool } from "./tools/save-document.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -14,6 +15,7 @@ async function main() {
   registry.register(getAppVersionTool);
   registry.register(createDocumentTool);
   registry.register(addPageTool);
+  registry.register(saveDocumentTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
