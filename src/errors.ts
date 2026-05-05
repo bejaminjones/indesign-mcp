@@ -1,11 +1,21 @@
-import type { ErrorKind, Envelope, ToolError } from "./types.js";
+import type { ErrorKind, Envelope, ToolError, SuccessEnvelope } from "./types.js";
 
 export type { ErrorKind } from "./types.js";
 
-export function ok<T = void>(result?: T): Envelope<T> {
-  return result === undefined
-    ? { ok: true }
-    : { ok: true, result };
+export interface OkOptions {
+  warnings?: string[];
+  document_state_delta?: import("./types.js").DocumentStateDelta;
+}
+
+export function ok<T = void>(
+  result?: T,
+  options: OkOptions = {},
+): Envelope<T> {
+  const env: SuccessEnvelope<T> = { ok: true };
+  if (result !== undefined) env.result = result;
+  if (options.warnings !== undefined) env.warnings = options.warnings;
+  if (options.document_state_delta !== undefined) env.document_state_delta = options.document_state_delta;
+  return env;
 }
 
 export function fail(

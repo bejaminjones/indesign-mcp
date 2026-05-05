@@ -50,4 +50,35 @@ describe("envelope helpers", () => {
       "timeout",
     ]);
   });
+
+  it("ok() accepts an optional warnings array", () => {
+    const env = ok({ value: 1 }, { warnings: ["font substituted"] });
+    expect(env).toEqual({
+      ok: true,
+      result: { value: 1 },
+      warnings: ["font substituted"],
+    });
+  });
+
+  it("ok() accepts an optional document_state_delta", () => {
+    const delta = { new_frames: [{ id: "f1", type: "text" }], page_count: 2 };
+    const env = ok({ value: 1 }, { document_state_delta: delta });
+    expect(env).toEqual({
+      ok: true,
+      result: { value: 1 },
+      document_state_delta: delta,
+    });
+  });
+
+  it("ok() omits warnings/delta keys when not provided", () => {
+    const env = ok({ value: 1 });
+    expect(env).toEqual({ ok: true, result: { value: 1 } });
+    expect(Object.keys(env)).not.toContain("warnings");
+    expect(Object.keys(env)).not.toContain("document_state_delta");
+  });
+
+  it("ok() works with no args and accepts options", () => {
+    const env = ok(undefined, { warnings: ["empty op"] });
+    expect(env).toEqual({ ok: true, warnings: ["empty op"] });
+  });
 });
