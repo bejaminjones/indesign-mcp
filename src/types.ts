@@ -6,6 +6,8 @@ export interface DocumentStateDelta {
   changed_frames?: Array<{ id: FrameId; bounds?: [number, number, number, number] }>;
   new_frames?: Array<{ id: FrameId; type: string }>;
   removed_frame_ids?: FrameId[];
+  new_page_ids?: string[];
+  removed_page_ids?: string[];
   page_count?: number;
 }
 

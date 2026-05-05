@@ -1,0 +1,21 @@
+import { describe, it, expect } from "vitest";
+import type { DocumentStateDelta } from "../../src/types.js";
+
+describe("DocumentStateDelta", () => {
+  it("accepts new_page_ids and removed_page_ids as optional string arrays", () => {
+    const delta: DocumentStateDelta = {
+      new_page_ids: ["p1", "p2"],
+      removed_page_ids: ["p3"],
+      page_count: 5,
+    };
+    expect(delta.new_page_ids).toEqual(["p1", "p2"]);
+    expect(delta.removed_page_ids).toEqual(["p3"]);
+    expect(delta.page_count).toBe(5);
+  });
+
+  it("allows omitting new_page_ids and removed_page_ids", () => {
+    const delta: DocumentStateDelta = { page_count: 0 };
+    expect(delta.new_page_ids).toBeUndefined();
+    expect(delta.removed_page_ids).toBeUndefined();
+  });
+});
