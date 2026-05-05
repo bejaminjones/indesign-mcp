@@ -45,4 +45,132 @@ describe("wrapExtendScript", () => {
       expect(() => new Script(wrapped)).not.toThrow();
     }
   });
+
+  it("when evaluated with stubbed JXA globals, writes the expected envelope", () => {
+    const wrapped = wrapExtendScript(`return { version: "21.3.0.60" };`);
+
+    let written: string | undefined;
+    const fakeNSString = {
+      alloc: {
+        initWithUTF8String(s: string) {
+          return {
+            _value: s,
+            writeToFileAtomicallyEncodingError(_path: { _value: string }, _atomic: boolean) {
+              if (this._value.startsWith("{")) written = this._value;
+            },
+          };
+        },
+      },
+    };
+
+    const fakeApp = {
+      doScript(_innerScript: string, _opts: { language: string }) {
+        return '{"ok":true,"result":{"version":"21.3.0.60"}}';
+      },
+    };
+
+    const context = {
+      Application: (_name: string) => fakeApp,
+      $: { NSString: fakeNSString, NSUTF8StringEncoding: 4 },
+      ObjC: { import: (_lib: string) => {} },
+      JSON,
+    };
+
+    const substituted = wrapped.replaceAll(
+      "__INDESIGN_MCP_RESULT_PATH__",
+      "/tmp/test-result.json",
+    );
+
+    new Script(substituted).runInNewContext(context);
+
+    expect(written).toBeDefined();
+    const env = JSON.parse(written!);
+    expect(env).toEqual({ ok: true, result: { version: "21.3.0.60" } });
+  });
+
+  it("when the inner script throws, writes a script_error envelope", () => {
+    const wrapped = wrapExtendScript(`return { x: 1 };`);
+
+    let written: string | undefined;
+    const fakeNSString = {
+      alloc: {
+        initWithUTF8String(s: string) {
+          return {
+            _value: s,
+            writeToFileAtomicallyEncodingError(_path: unknown) {
+              if (this._value.startsWith("{")) written = this._value;
+            },
+          };
+        },
+      },
+    };
+
+    const fakeApp = {
+      doScript() {
+        return '{"ok":false,"error":{"kind":"script_error","message":"boom","stack":""}}';
+      },
+    };
+
+    const context = {
+      Application: (_n: string) => fakeApp,
+      $: { NSString: fakeNSString, NSUTF8StringEncoding: 4 },
+      ObjC: { import: () => {} },
+      JSON,
+    };
+
+    const substituted = wrapped.replaceAll(
+      "__INDESIGN_MCP_RESULT_PATH__",
+      "/tmp/test-result.json",
+    );
+
+    new Script(substituted).runInNewContext(context);
+
+    expect(written).toBeDefined();
+    const env = JSON.parse(written!);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("script_error");
+  });
+
+  it("when Application(...) throws, writes an app_not_available envelope", () => {
+    const wrapped = wrapExtendScript(`return { x: 1 };`);
+
+    let written: string | undefined;
+    const fakeNSString = {
+      alloc: {
+        initWithUTF8String(s: string) {
+          return {
+            _value: s,
+            writeToFileAtomicallyEncodingError(_path: unknown) {
+              if (this._value.startsWith("{")) written = this._value;
+            },
+          };
+        },
+      },
+    };
+
+    function ApplicationStub(_name: string): never {
+      const err: Error & { errorNumber?: number } = new Error("Application can't be found");
+      err.errorNumber = -600;
+      throw err;
+    }
+
+    const context = {
+      Application: ApplicationStub,
+      $: { NSString: fakeNSString, NSUTF8StringEncoding: 4 },
+      ObjC: { import: () => {} },
+      JSON,
+    };
+
+    const substituted = wrapped.replaceAll(
+      "__INDESIGN_MCP_RESULT_PATH__",
+      "/tmp/test-result.json",
+    );
+
+    new Script(substituted).runInNewContext(context);
+
+    expect(written).toBeDefined();
+    const env = JSON.parse(written!);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("app_not_available");
+  });
 });
