@@ -7,6 +7,7 @@ import { getAppVersionTool } from "./tools/get-app-version.js";
 import { createDocumentTool } from "./tools/create-document.js";
 import { addPageTool } from "./tools/add-page.js";
 import { saveDocumentTool } from "./tools/save-document.js";
+import { exportPdfTool } from "./tools/export-pdf.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -16,6 +17,7 @@ async function main() {
   registry.register(createDocumentTool);
   registry.register(addPageTool);
   registry.register(saveDocumentTool);
+  registry.register(exportPdfTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
