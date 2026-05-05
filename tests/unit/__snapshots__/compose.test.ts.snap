@@ -19,7 +19,9 @@ try {
   var wrappedBody =
     "(function(){" +
     "  try {" +
-    "    var __r = (function(){" + bodyText + "})();" +
+    "    var __r = (function(){
+" + bodyText + "
+})();" +
     "    return JSON.stringify({ok:true, result: __r});" +
     "  } catch (e) {" +
     "    return JSON.stringify({" +
@@ -35,7 +37,9 @@ try {
 } catch (outer) {
   // Most likely cause: InDesign isn't running.
   var msg = String(outer.message || outer);
-  var kind = (msg.indexOf("Application can't be found") !== -1)
+  var n = outer.errorNumber;
+  var kind = (n === -600 || n === -1728 || n === -10814 ||
+              msg.indexOf("Application can't be found") !== -1)
     ? "app_not_available"
     : "script_error";
   writeResult({ ok:false, error: { kind: kind, message: msg } });

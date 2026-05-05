@@ -1,14 +1,13 @@
 /**
- * Wraps an ExtendScript body in a JavaScript-for-Automation (JXA) shell.
+ * Wraps an ExtendScript body in a JXA shell that dispatches to InDesign.
  *
- * The body must be self-contained ExtendScript that ends with a `return <value>;`.
- * The sentinel `__INDESIGN_MCP_RESULT_PATH__` is substituted at dispatch time
- * by the transport layer (runScriptWithResultFile).
+ * Body must end with `return <value>;` — it's invoked inside an IIFE.
+ * Sentinel __INDESIGN_MCP_RESULT_PATH__ is substituted by runScriptWithResultFile.
  *
- * Outcomes written to the result file:
- *   - body succeeds → {ok:true, result: <return value>}
- *   - body throws   → {ok:false, error:{kind:"script_error", message, stack}}
- *   - InDesign not present (outer JXA failure) → {ok:false, error:{kind:"app_not_available", message}}
+ * Result envelopes written:
+ *   success     → {ok:true, result}
+ *   body throws → {ok:false, error:{kind:"script_error", message, stack}}
+ *   no InDesign → {ok:false, error:{kind:"app_not_available", message}}
  */
 export function wrapExtendScript(body: string): string {
   // Embed the body as a JSON string. ExtendScript receives it via JXA's
@@ -33,7 +32,7 @@ try {
   var wrappedBody =
     "(function(){" +
     "  try {" +
-    "    var __r = (function(){" + bodyText + "})();" +
+    "    var __r = (function(){\n" + bodyText + "\n})();" +
     "    return JSON.stringify({ok:true, result: __r});" +
     "  } catch (e) {" +
     "    return JSON.stringify({" +
@@ -49,7 +48,9 @@ try {
 } catch (outer) {
   // Most likely cause: InDesign isn't running.
   var msg = String(outer.message || outer);
-  var kind = (msg.indexOf("Application can't be found") !== -1)
+  var n = outer.errorNumber;
+  var kind = (n === -600 || n === -1728 || n === -10814 ||
+              msg.indexOf("Application can't be found") !== -1)
     ? "app_not_available"
     : "script_error";
   writeResult({ ok:false, error: { kind: kind, message: msg } });
