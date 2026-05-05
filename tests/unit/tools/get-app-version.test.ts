@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getAppVersionTool } from "../../../src/tools/get-app-version.js";
 import { RESULT_PATH_SENTINEL } from "../../../src/compose.js";
+import { lastCall, expectFailure } from "../_helpers.js";
 
 // We test by stubbing the transport. This validates schema, script body,
 // and result parsing — without actually running osascript or InDesign.
@@ -34,7 +35,7 @@ describe("get_app_version tool", () => {
     expect(env).toEqual({ ok: true, result: { version: "21.0" } });
 
     expect(runScriptWithResultFile).toHaveBeenCalledOnce();
-    const arg = vi.mocked(runScriptWithResultFile).mock.calls[0][0];
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
     expect(arg.language).toBe("JavaScript");
     expect(arg.scriptTemplate).toContain("app.version");
     expect(arg.scriptTemplate).toContain(RESULT_PATH_SENTINEL);
@@ -46,8 +47,7 @@ describe("get_app_version tool", () => {
       error: { kind: "app_not_available", message: "no app" },
     });
     const env = await getAppVersionTool.handler({});
-    expect(env.ok).toBe(false);
-    if (env.ok) return;
+    expectFailure(env);
     expect(env.error.kind).toBe("app_not_available");
   });
 });
