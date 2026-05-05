@@ -6,7 +6,7 @@ describe("runScriptWithResultFile", () => {
     // The script uses JavaScript-for-Automation (jxa) so it runs without InDesign.
     const scriptTemplate = `
       ObjC.import("Foundation");
-      var path = $.NSString.alloc.initWithUTF8String("RESULT_PATH");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
       var json = $.NSString.alloc.initWithUTF8String(JSON.stringify({ok:true, result:{n:7}}));
       json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
     `;
@@ -22,7 +22,7 @@ describe("runScriptWithResultFile", () => {
     // envelope the script writes.
     const scriptTemplate = `
       ObjC.import("Foundation");
-      var path = $.NSString.alloc.initWithUTF8String("RESULT_PATH");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
       var json = $.NSString.alloc.initWithUTF8String(JSON.stringify({
         ok:false,
         error:{kind:"app_not_available", message:"InDesign not running"}
@@ -35,13 +35,28 @@ describe("runScriptWithResultFile", () => {
     expect(env.error.kind).toBe("app_not_available");
   });
 
-  it("returns script_error when the result file is missing or invalid JSON", async () => {
-    // Script that exits without writing anything to RESULT_PATH.
+  it("returns script_error when the result file is missing", async () => {
+    // Script that exits without writing anything to __INDESIGN_MCP_RESULT_PATH__.
     const scriptTemplate = `"no result written"`;
     const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
     expect(env.ok).toBe(false);
     if (env.ok) return;
     expect(env.error.kind).toBe("script_error");
+  });
+
+  it("returns script_error when the result file is invalid JSON", async () => {
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var raw = $.NSString.alloc.initWithUTF8String("not-json-at-all-{{{");
+      raw.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+    expect(env.error.message).toMatch(/not valid JSON/i);
+    expect(env.error.stack).toContain("not-json-at-all");
   });
 
   it("returns timeout when the script hangs", async () => {

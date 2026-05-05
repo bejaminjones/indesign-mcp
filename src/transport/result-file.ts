@@ -7,7 +7,7 @@ import { runOsascript } from "./osascript.js";
 
 export interface RunScriptInput {
   language: "AppleScript" | "JavaScript";
-  /** Script body. Occurrences of the literal `RESULT_PATH` are replaced
+  /** Script body. Occurrences of the literal `__INDESIGN_MCP_RESULT_PATH__` are replaced
    *  with the absolute temp file path before execution. */
   scriptTemplate: string;
   timeoutMs?: number;
@@ -22,7 +22,7 @@ export async function runScriptWithResultFile<T = unknown>(
   const resultPath = join(dir, "result.json");
 
   try {
-    const script = input.scriptTemplate.replaceAll("RESULT_PATH", resultPath);
+    const script = input.scriptTemplate.replaceAll("__INDESIGN_MCP_RESULT_PATH__", resultPath);
     const dispatch = await runOsascript({
       language: input.language,
       script,
@@ -63,6 +63,12 @@ export async function runScriptWithResultFile<T = unknown>(
     // Trust the script's envelope shape — it's our own contract.
     return parsed as Envelope<T>;
   } finally {
-    rm(dir, { recursive: true, force: true }).catch(() => {});
+    try {
+      await rm(dir, { recursive: true, force: true });
+    } catch (err) {
+      console.warn(
+        `[indesign-mcp] tempdir cleanup failed: ${dir}: ${(err as Error).message}`,
+      );
+    }
   }
 }
