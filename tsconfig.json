@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "declaration": false,
     "sourceMap": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noEmit": true
   },
   "include": ["src/**/*", "tests/**/*"]
 }
