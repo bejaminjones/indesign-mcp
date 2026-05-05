@@ -1,0 +1,26 @@
+{
+  "name": "indesign-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "MCP server bridging Claude to Adobe InDesign 2026 via ExtendScript over osascript.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run --exclude '**/*.int.test.ts'",
+    "test:watch": "vitest --exclude '**/*.int.test.ts'",
+    "test:integration": "INDESIGN_MCP_INTEGRATION=1 vitest run '**/*.int.test.ts'",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}
