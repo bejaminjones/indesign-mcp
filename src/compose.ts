@@ -1,8 +1,14 @@
 /**
+ * Sentinel replaced by runScriptWithResultFile with the actual temp-file path
+ * before the script is dispatched to osascript.
+ */
+export const RESULT_PATH_SENTINEL = "__INDESIGN_MCP_RESULT_PATH__";
+
+/**
  * Wraps an ExtendScript body in a JXA shell that dispatches to InDesign.
  *
  * Body must end with `return <value>;` — it's invoked inside an IIFE.
- * Sentinel __INDESIGN_MCP_RESULT_PATH__ is substituted by runScriptWithResultFile.
+ * Sentinel RESULT_PATH_SENTINEL is substituted by runScriptWithResultFile.
  *
  * Result envelopes written:
  *   success     → {ok:true, result}
@@ -17,7 +23,7 @@ export function wrapExtendScript(body: string): string {
   return `
 ObjC.import("Foundation");
 
-var resultPath = "__INDESIGN_MCP_RESULT_PATH__";
+var resultPath = "${RESULT_PATH_SENTINEL}";
 var bodyText = ${bodyJson};
 
 function writeResult(envObj) {

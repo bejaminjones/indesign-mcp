@@ -4,11 +4,12 @@ import { join } from "node:path";
 import type { Envelope } from "../types.js";
 import { fail } from "../errors.js";
 import { runOsascript } from "./osascript.js";
+import { RESULT_PATH_SENTINEL } from "../compose.js";
 
 export interface RunScriptInput {
   language: "AppleScript" | "JavaScript";
-  /** Script body. Occurrences of the literal `__INDESIGN_MCP_RESULT_PATH__` are replaced
-   *  with the absolute temp file path before execution. */
+  /** Script body. Occurrences of `RESULT_PATH_SENTINEL` are replaced with
+   *  the absolute temp file path before execution. */
   scriptTemplate: string;
   timeoutMs?: number;
 }
@@ -22,7 +23,7 @@ export async function runScriptWithResultFile<T = unknown>(
   const resultPath = join(dir, "result.json");
 
   try {
-    const script = input.scriptTemplate.replaceAll("__INDESIGN_MCP_RESULT_PATH__", resultPath);
+    const script = input.scriptTemplate.replaceAll(RESULT_PATH_SENTINEL, resultPath);
     const dispatch = await runOsascript({
       language: input.language,
       script,

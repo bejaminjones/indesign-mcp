@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getAppVersionTool } from "../../../src/tools/get-app-version.js";
+import { RESULT_PATH_SENTINEL } from "../../../src/compose.js";
 
 // We test by stubbing the transport. This validates schema, script body,
 // and result parsing — without actually running osascript or InDesign.
@@ -36,8 +37,7 @@ describe("get_app_version tool", () => {
     const arg = vi.mocked(runScriptWithResultFile).mock.calls[0][0];
     expect(arg.language).toBe("JavaScript");
     expect(arg.scriptTemplate).toContain("app.version");
-    // The compose layer's sentinel is __INDESIGN_MCP_RESULT_PATH__
-    expect(arg.scriptTemplate).toContain("__INDESIGN_MCP_RESULT_PATH__");
+    expect(arg.scriptTemplate).toContain(RESULT_PATH_SENTINEL);
   });
 
   it("propagates failure envelopes verbatim", async () => {
