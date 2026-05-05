@@ -98,4 +98,30 @@ describe("runScriptWithResultFile", () => {
     if (env.ok) return;
     expect(env.error.kind).toBe("script_error");
   });
+
+  it("rejects a failure envelope missing the required error.kind field", async () => {
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"ok":false,"error":{"message":"oops"}}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+  });
+
+  it("rejects a failure envelope missing the error object entirely", async () => {
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"ok":false}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+  });
 });

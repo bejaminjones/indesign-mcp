@@ -9,7 +9,7 @@ import { RESULT_PATH_SENTINEL } from "../compose.js";
 
 // Minimal envelope schema: validates shape, not the inner result/error payload
 // (those are tool-specific). Catches truthy-but-wrong envelopes from scripts.
-const EnvelopeSchema = z.union([
+const EnvelopeSchema = z.discriminatedUnion("ok", [
   z.object({
     ok: z.literal(true),
     result: z.unknown().optional(),
