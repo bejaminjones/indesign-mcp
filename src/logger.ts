@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 export interface Logger {
   info(event: string, data: Record<string, unknown>): Promise<void>;
   error(event: string, data: Record<string, unknown>): Promise<void>;
-  close(): Promise<void>;
+  flush(): Promise<void>;
 }
 
 type Level = "info" | "error";
@@ -21,14 +21,19 @@ export function createLogger(path: string): Logger {
 
   const write = (level: Level, event: string, data: Record<string, unknown>) => {
     queue = queue.then(async () => {
-      await ensureDir();
-      const line = JSON.stringify({
-        ts: new Date().toISOString(),
-        level,
-        event,
-        data,
-      });
-      await appendFile(path, line + "\n", "utf8");
+      try {
+        await ensureDir();
+        const line = JSON.stringify({
+          ts: new Date().toISOString(),
+          level,
+          event,
+          data,
+        });
+        await appendFile(path, line + "\n", "utf8");
+      } catch (err) {
+        // Best-effort: surface to stderr, don't poison the queue.
+        process.stderr.write(`[logger] write failed: ${(err as Error).message}\n`);
+      }
     });
     return queue;
   };
@@ -36,7 +41,7 @@ export function createLogger(path: string): Logger {
   return {
     info: (event, data) => write("info", event, data),
     error: (event, data) => write("error", event, data),
-    close: () => queue,
+    flush: () => queue,
   };
 }
 
