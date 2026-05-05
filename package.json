@@ -10,7 +10,7 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run --exclude '**/*.int.test.ts'",
     "test:watch": "vitest --exclude '**/*.int.test.ts'",
-    "test:integration": "INDESIGN_MCP_INTEGRATION=1 vitest run .int.test.ts",
+    "test:integration": "INDESIGN_MCP_INTEGRATION=1 vitest run .int.test.ts --no-file-parallelism",
     "start": "node dist/index.js"
   },
   "dependencies": {

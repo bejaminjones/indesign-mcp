@@ -32,7 +32,12 @@ function buildScriptBody(input: Input, absolutePath: string | undefined): string
   const saveCall =
     absolutePath !== undefined
       ? `doc.save(File(${lit(absolutePath)}));`
-      : `doc.save();`;
+      : `
+        if (!doc.saved) {
+          throw { name: "io_error", message: "document has never been saved; provide a path to save-as" };
+        }
+        doc.save();
+      `;
 
   return `
     function findDocumentById(id) {

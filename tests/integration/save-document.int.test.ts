@@ -26,8 +26,11 @@ integrationGate("save_document (integration)", () => {
         const env = await saveDocumentTool.handler({ path: indd });
         expect(env.ok).toBe(true);
         if (!env.ok) return;
-        expect(env.result?.path).toBe(indd);
+        // InDesign canonicalises macOS paths through firmlinks (/var → /private/var),
+        // so the returned path may differ from the input string. Verify the file
+        // actually exists at the input path (works through the symlink).
         expect(existsSync(indd)).toBe(true);
+        expect(env.result?.path).toMatch(/test\.indd$/);
       } finally {
         rmSync(tmpDir, { recursive: true, force: true });
       }
