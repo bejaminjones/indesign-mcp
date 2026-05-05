@@ -4,12 +4,14 @@ import { ToolRegistry } from "./tools/registry.js";
 import { createLogger, defaultLogPath } from "./logger.js";
 import { registerLogger } from "./logger-singleton.js";
 import { getAppVersionTool } from "./tools/get-app-version.js";
+import { createDocumentTool } from "./tools/create-document.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
   registerLogger(logger);
   const registry = new ToolRegistry();
   registry.register(getAppVersionTool);
+  registry.register(createDocumentTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
