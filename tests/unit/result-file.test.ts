@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runScriptWithResultFile } from "../../src/transport/result-file.js";
@@ -153,10 +153,11 @@ describe("runScriptWithResultFile", () => {
       expect(events).toContain("script_dispatch_envelope");
 
       const endEvent = lines.find((l) => l.event === "script_dispatch_end");
-      expect(endEvent?.data.scriptTemplate).toContain("RESULT_PATH");
+      expect(endEvent?.data.scriptTemplate).toContain("__INDESIGN_MCP_RESULT_PATH__");
       expect(endEvent?.data.dispatchKind).toBe("ok");
     } finally {
       clearLogger();
+      rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 });

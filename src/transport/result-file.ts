@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -41,11 +42,13 @@ export async function runScriptWithResultFile<T = unknown>(
 ): Promise<Envelope<T>> {
   const dir = await mkdtemp(join(tmpdir(), TEMP_PREFIX));
   const resultPath = join(dir, "result.json");
+  const dispatchId = randomUUID();
 
   try {
     const script = input.scriptTemplate.replaceAll(RESULT_PATH_SENTINEL, resultPath);
     const log = getLogger();
     await log?.info("script_dispatch_start", {
+      dispatchId,
       language: input.language,
       scriptLength: script.length,
     });
@@ -56,6 +59,7 @@ export async function runScriptWithResultFile<T = unknown>(
     });
 
     await log?.info("script_dispatch_end", {
+      dispatchId,
       language: input.language,
       dispatchKind: dispatch.kind,
       exitCode: dispatch.kind === "ok" ? dispatch.exitCode : undefined,
@@ -104,6 +108,7 @@ export async function runScriptWithResultFile<T = unknown>(
       ) as Envelope<T>;
     }
     await log?.info("script_dispatch_envelope", {
+      dispatchId,
       ok: validation.data.ok,
       envelopeSnippet: raw.slice(0, 1000),
     });
