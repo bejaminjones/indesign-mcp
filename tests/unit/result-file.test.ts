@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runScriptWithResultFile } from "../../src/transport/result-file.js";
+import { createLogger } from "../../src/logger.js";
+import { registerLogger, clearLogger } from "../../src/logger-singleton.js";
 
 describe("runScriptWithResultFile", () => {
   it("substitutes RESULT_PATH and reads the JSON result", async () => {
@@ -123,5 +128,35 @@ describe("runScriptWithResultFile", () => {
     expect(env.ok).toBe(false);
     if (env.ok) return;
     expect(env.error.kind).toBe("script_error");
+  });
+
+  it("emits dispatch_start, dispatch_end, and envelope log entries", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "indesign-mcp-test-"));
+    const logPath = join(tmpDir, "test.log");
+    const logger = createLogger(logPath);
+    registerLogger(logger);
+
+    try {
+      const scriptTemplate = `
+        ObjC.import("Foundation");
+        var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+        var json = $.NSString.alloc.initWithUTF8String(JSON.stringify({ok:true, result:{n:1}}));
+        json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+      `;
+      await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+      await logger.flush();
+
+      const lines = readFileSync(logPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+      const events = lines.map((l) => l.event);
+      expect(events).toContain("script_dispatch_start");
+      expect(events).toContain("script_dispatch_end");
+      expect(events).toContain("script_dispatch_envelope");
+
+      const endEvent = lines.find((l) => l.event === "script_dispatch_end");
+      expect(endEvent?.data.scriptTemplate).toContain("RESULT_PATH");
+      expect(endEvent?.data.dispatchKind).toBe("ok");
+    } finally {
+      clearLogger();
+    }
   });
 });

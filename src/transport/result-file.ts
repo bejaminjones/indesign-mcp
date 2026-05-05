@@ -6,6 +6,7 @@ import type { Envelope } from "../types.js";
 import { fail } from "../errors.js";
 import { runOsascript } from "./osascript.js";
 import { RESULT_PATH_SENTINEL } from "../compose.js";
+import { getLogger } from "../logger-singleton.js";
 
 // Minimal envelope schema: validates shape, not the inner result/error payload
 // (those are tool-specific). Catches truthy-but-wrong envelopes from scripts.
@@ -43,10 +44,24 @@ export async function runScriptWithResultFile<T = unknown>(
 
   try {
     const script = input.scriptTemplate.replaceAll(RESULT_PATH_SENTINEL, resultPath);
+    const log = getLogger();
+    await log?.info("script_dispatch_start", {
+      language: input.language,
+      scriptLength: script.length,
+    });
     const dispatch = await runOsascript({
       language: input.language,
       script,
       timeoutMs: input.timeoutMs,
+    });
+
+    await log?.info("script_dispatch_end", {
+      language: input.language,
+      dispatchKind: dispatch.kind,
+      exitCode: dispatch.kind === "ok" ? dispatch.exitCode : undefined,
+      scriptTemplate: input.scriptTemplate,
+      rawStdoutSnippet: dispatch.kind === "ok" ? dispatch.stdout.slice(0, 1000) : undefined,
+      rawStderrSnippet: dispatch.kind === "ok" ? dispatch.stderr.slice(0, 1000) : undefined,
     });
 
     if (dispatch.kind === "timeout") {
@@ -88,6 +103,10 @@ export async function runScriptWithResultFile<T = unknown>(
         { stack: raw.slice(0, 500) },
       ) as Envelope<T>;
     }
+    await log?.info("script_dispatch_envelope", {
+      ok: validation.data.ok,
+      envelopeSnippet: raw.slice(0, 1000),
+    });
     return validation.data as Envelope<T>;
   } finally {
     try {
