@@ -14,12 +14,16 @@ describe("wrapExtendScript", () => {
     expect(wrapped).toContain("doScript"); // jxa method name
   });
 
-  it("wraps multi-line bodies safely (no string-escape issues)", () => {
+  it("embeds the body verbatim inside the inner script", () => {
     const body = `var s = "she said \\"hi\\"";\nreturn { s: s };`;
     const wrapped = wrapExtendScript(body);
-    // The body is embedded as a JSON-encoded string and unwrapped at runtime,
-    // so we don't have to escape twice. The wrapper must contain the JSON form.
-    expect(wrapped).toContain(JSON.stringify(body));
+    // Extract the JSON literal passed to indd.doScript and parse it back to
+    // recover the inner ExtendScript source. The body must appear unmodified.
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+    expect(innerSource).toContain(body);
+    expect(innerSource).toContain("function _stringify");
   });
 
   it("matches the documented snapshot", () => {
