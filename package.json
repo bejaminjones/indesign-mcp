@@ -6,8 +6,8 @@
   "description": "MCP server bridging Claude to Adobe InDesign 2026 via ExtendScript over osascript.",
   "engines": { "node": ">=20" },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run --exclude '**/*.int.test.ts'",
     "test:watch": "vitest --exclude '**/*.int.test.ts'",
     "test:integration": "INDESIGN_MCP_INTEGRATION=1 vitest run .int.test.ts",

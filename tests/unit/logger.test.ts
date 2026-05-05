@@ -64,7 +64,6 @@ describe("createLogger", () => {
 
     // Suppress stderr noise from the best-effort fallback during this test.
     const originalWrite = process.stderr.write.bind(process.stderr);
-    // @ts-expect-error — stub signature varies
     process.stderr.write = () => true;
 
     try {
