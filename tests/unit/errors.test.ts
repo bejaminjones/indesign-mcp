@@ -28,18 +28,26 @@ describe("envelope helpers", () => {
     });
   });
 
-  it("ErrorKind values are the closed set from the spec", () => {
-    const expected: ErrorKind[] = [
-      "script_error",
+  it("ErrorKind covers exactly the closed set from the spec", () => {
+    // Compile-time exhaustiveness: if ErrorKind gains or loses a member,
+    // this Record literal fails to type-check (missing key or excess key).
+    const exhaustive: Record<ErrorKind, true> = {
+      script_error: true,
+      app_not_available: true,
+      not_found: true,
+      name_collision: true,
+      io_error: true,
+      timeout: true,
+      invalid_args: true,
+    };
+    expect(Object.keys(exhaustive).sort()).toEqual([
       "app_not_available",
-      "not_found",
-      "name_collision",
-      "io_error",
-      "timeout",
       "invalid_args",
-    ];
-    // Compile-time assertion — if ErrorKind drifts, this fails to type-check.
-    const sample: ErrorKind = expected[0];
-    expect(sample).toBe("script_error");
+      "io_error",
+      "name_collision",
+      "not_found",
+      "script_error",
+      "timeout",
+    ]);
   });
 });

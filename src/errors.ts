@@ -2,7 +2,7 @@ import type { ErrorKind, Envelope, ToolError } from "./types.js";
 
 export type { ErrorKind } from "./types.js";
 
-export function ok<T>(result?: T): Envelope<T> {
+export function ok<T = void>(result?: T): Envelope<T> {
   return result === undefined
     ? { ok: true }
     : { ok: true, result };
