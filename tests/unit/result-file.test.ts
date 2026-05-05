@@ -70,4 +70,32 @@ describe("runScriptWithResultFile", () => {
     if (env.ok) return;
     expect(env.error.kind).toBe("timeout");
   });
+
+  it("rejects an envelope with the wrong shape (e.g. ok: 1)", async () => {
+    // Script writes a plausibly-shaped but invalid envelope (truthy-but-wrong ok).
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"ok":1,"result":{}}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+    expect(env.error.message).toMatch(/envelope/i);
+  });
+
+  it("rejects an envelope missing the required ok field", async () => {
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"result":"surprise"}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const env = await runScriptWithResultFile({ language: "JavaScript", scriptTemplate });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+  });
 });

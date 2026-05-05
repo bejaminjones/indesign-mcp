@@ -1,10 +1,29 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "zod";
 import type { Envelope } from "../types.js";
 import { fail } from "../errors.js";
 import { runOsascript } from "./osascript.js";
 import { RESULT_PATH_SENTINEL } from "../compose.js";
+
+// Minimal envelope schema: validates shape, not the inner result/error payload
+// (those are tool-specific). Catches truthy-but-wrong envelopes from scripts.
+const EnvelopeSchema = z.union([
+  z.object({
+    ok: z.literal(true),
+    result: z.unknown().optional(),
+    document_state_delta: z.unknown().optional(),
+    warnings: z.array(z.string()).optional(),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.object({
+      kind: z.string(),
+      message: z.string(),
+    }).passthrough(),
+  }),
+]);
 
 export interface RunScriptInput {
   language: "AppleScript" | "JavaScript";
@@ -61,8 +80,15 @@ export async function runScriptWithResultFile<T = unknown>(
       ) as Envelope<T>;
     }
 
-    // Trust the script's envelope shape — it's our own contract.
-    return parsed as Envelope<T>;
+    const validation = EnvelopeSchema.safeParse(parsed);
+    if (!validation.success) {
+      return fail(
+        "script_error",
+        `script returned an envelope with the wrong shape: ${validation.error.message}`,
+        { stack: raw.slice(0, 500) },
+      ) as Envelope<T>;
+    }
+    return validation.data as Envelope<T>;
   } finally {
     try {
       await rm(dir, { recursive: true, force: true });
