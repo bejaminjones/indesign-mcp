@@ -152,4 +152,47 @@ describe("create_document tool", () => {
     expectFailure(env);
     expect(env.error.kind).toBe("app_not_available");
   });
+
+  it("rejects orientation when used with explicit dimensions", () => {
+    const result = createDocumentTool.inputSchema.safeParse({
+      width_mm: 200,
+      height_mm: 300,
+      orientation: "landscape",
+      margins_mm: { top: 12, bottom: 12, left: 12, right: 12 },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("emits a warning when facing-page margins are used", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { document_id: "d", page_ids: ["p"], page_count: 1 },
+    });
+
+    const env = await createDocumentTool.handler({
+      preset: "A4",
+      facing_pages: true,
+      margins_mm: { top: 12, bottom: 12, inside: 14, outside: 10 },
+    });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.warnings).toBeDefined();
+    expect(env.warnings![0]).toMatch(/facing/i);
+  });
+
+  it("rejects a script result that doesn't match ScriptResultSchema", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: false,
+      error: { kind: "script_error", message: "script result failed schema validation: ..." },
+    });
+
+    const env = await createDocumentTool.handler({
+      preset: "A4",
+      margins_mm: { top: 12, bottom: 12, left: 12, right: 12 },
+    });
+
+    expectFailure(env);
+    expect(env.error.kind).toBe("script_error");
+  });
 });

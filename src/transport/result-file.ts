@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { z } from "zod";
+import { z, ZodTypeAny } from "zod";
 import type { Envelope } from "../types.js";
 import { fail } from "../errors.js";
 import { runOsascript } from "./osascript.js";
@@ -33,6 +33,9 @@ export interface RunScriptInput {
    *  the absolute temp file path before execution. */
   scriptTemplate: string;
   timeoutMs?: number;
+  /** Optional Zod schema to validate the success result payload. When provided,
+   *  a result that doesn't match the schema is treated as a script_error. */
+  resultSchema?: ZodTypeAny;
 }
 
 const TEMP_PREFIX = "indesign-mcp-";
@@ -112,6 +115,18 @@ export async function runScriptWithResultFile<T = unknown>(
       ok: validation.data.ok,
       envelopeSnippet: raw.slice(0, 1000),
     });
+    if (validation.data.ok && input.resultSchema !== undefined) {
+      const resultValidation = input.resultSchema.safeParse(validation.data.result);
+      if (!resultValidation.success) {
+        return fail(
+          "script_error",
+          `script result failed schema validation: ${resultValidation.error.message}`,
+          { stack: raw.slice(0, 500) },
+        ) as Envelope<T>;
+      }
+      // Replace the loose result with the validated one.
+      return { ...validation.data, result: resultValidation.data } as Envelope<T>;
+    }
     return validation.data as Envelope<T>;
   } finally {
     try {

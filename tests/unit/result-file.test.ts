@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -128,6 +129,44 @@ describe("runScriptWithResultFile", () => {
     expect(env.ok).toBe(false);
     if (env.ok) return;
     expect(env.error.kind).toBe("script_error");
+  });
+
+  it("rejects a result that doesn't match the optional resultSchema", async () => {
+    // Script writes a structurally valid envelope but the result has the wrong shape.
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"ok":true,"result":{"unexpected":"shape"}}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const Schema = z.object({ expected: z.string() });
+    const env = await runScriptWithResultFile({
+      language: "JavaScript",
+      scriptTemplate,
+      resultSchema: Schema,
+    });
+    expect(env.ok).toBe(false);
+    if (env.ok) return;
+    expect(env.error.kind).toBe("script_error");
+    expect(env.error.message).toMatch(/schema validation/i);
+  });
+
+  it("accepts a result that matches the optional resultSchema", async () => {
+    const scriptTemplate = `
+      ObjC.import("Foundation");
+      var path = $.NSString.alloc.initWithUTF8String("__INDESIGN_MCP_RESULT_PATH__");
+      var json = $.NSString.alloc.initWithUTF8String('{"ok":true,"result":{"expected":"value"}}');
+      json.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+    `;
+    const Schema = z.object({ expected: z.string() });
+    const env = await runScriptWithResultFile<{ expected: string }>({
+      language: "JavaScript",
+      scriptTemplate,
+      resultSchema: Schema,
+    });
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.result?.expected).toBe("value");
   });
 
   it("emits dispatch_start, dispatch_end, and envelope log entries", async () => {

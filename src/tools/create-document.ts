@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
-import { wrapExtendScript } from "../compose.js";
+import { wrapExtendScript, lit } from "../compose.js";
 import { ok } from "../errors.js";
 
 // Preset dimensions in millimetres (portrait orientation).
@@ -61,15 +61,25 @@ const InputSchema = z
       return true;
     },
     { message: "`inside`/`outside` margins require facing_pages: true" },
+  )
+  .refine(
+    (data) => {
+      // Orientation is only meaningful with preset; explicit dims define their own orientation.
+      if (data.orientation !== undefined && data.width_mm !== undefined) return false;
+      return true;
+    },
+    { message: "`orientation` is only valid with `preset`; explicit `width_mm`/`height_mm` define orientation directly" },
   );
 
 type Input = z.infer<typeof InputSchema>;
 
-interface ScriptResult {
-  document_id: string;
-  page_ids: string[];
-  page_count: number;
-}
+const ScriptResultSchema = z.object({
+  document_id: z.string(),
+  page_ids: z.array(z.string()),
+  page_count: z.number().int().nonnegative(),
+});
+
+type ScriptResult = z.infer<typeof ScriptResultSchema>;
 
 interface Result {
   document_id: string;
@@ -77,19 +87,13 @@ interface Result {
 }
 
 function resolveDimensions(input: Input): { width_mm: number; height_mm: number } {
-  let w: number;
-  let h: number;
   if (input.preset !== undefined) {
     const preset = PRESETS[input.preset];
-    w = preset.width_mm;
-    h = preset.height_mm;
-  } else {
-    w = input.width_mm!;
-    h = input.height_mm!;
+    let { width_mm, height_mm } = preset;
+    if (input.orientation === "landscape") [width_mm, height_mm] = [height_mm, width_mm];
+    return { width_mm, height_mm };
   }
-  if (input.orientation === "landscape" && w < h) [w, h] = [h, w];
-  if (input.orientation === "portrait" && w > h) [w, h] = [h, w];
-  return { width_mm: w, height_mm: h };
+  return { width_mm: input.width_mm!, height_mm: input.height_mm! };
 }
 
 function resolveMargins(input: Input): {
@@ -118,18 +122,18 @@ function buildScriptBody(input: Input): string {
     try {
       var doc = app.documents.add();
       var dp = doc.documentPreferences;
-      dp.facingPages = ${facing};
-      dp.pageWidth = ${dims.width_mm};
-      dp.pageHeight = ${dims.height_mm};
-      dp.pagesPerDocument = ${pages};
+      dp.facingPages = ${lit(facing)};
+      dp.pageWidth = ${lit(dims.width_mm)};
+      dp.pageHeight = ${lit(dims.height_mm)};
+      dp.pagesPerDocument = ${lit(pages)};
 
       var marginPrefs = doc.marginPreferences;
-      marginPrefs.top = ${margins.top};
-      marginPrefs.bottom = ${margins.bottom};
-      marginPrefs.left = ${margins.left};
-      marginPrefs.right = ${margins.right};
-      marginPrefs.columnCount = ${columns.count};
-      marginPrefs.columnGutter = ${columns.gutter_mm};
+      marginPrefs.top = ${lit(margins.top)};
+      marginPrefs.bottom = ${lit(margins.bottom)};
+      marginPrefs.left = ${lit(margins.left)};
+      marginPrefs.right = ${lit(margins.right)};
+      marginPrefs.columnCount = ${lit(columns.count)};
+      marginPrefs.columnGutter = ${lit(columns.gutter_mm)};
 
       var pageIds = [];
       for (var i = 0; i < doc.pages.length; i++) {
@@ -157,9 +161,14 @@ export const createDocumentTool = defineTool<Input, Result>({
     const env = await runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",
       scriptTemplate: wrapExtendScript(body),
+      resultSchema: ScriptResultSchema,
     });
     if (!env.ok) return env;
     const r = env.result!;
+    const isFacingMargins = "inside" in input.margins_mm;
+    const warnings = isFacingMargins
+      ? ["facing-page margins applied as left=inside/right=outside; verso pages will be mirrored incorrectly until per-spread setup is supported"]
+      : undefined;
     return ok(
       { document_id: r.document_id, page_ids: r.page_ids },
       {
@@ -167,6 +176,7 @@ export const createDocumentTool = defineTool<Input, Result>({
           page_count: r.page_count,
           new_page_ids: r.page_ids,
         },
+        warnings,
       },
     );
   },

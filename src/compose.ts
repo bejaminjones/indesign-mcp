@@ -5,6 +5,22 @@
 export const RESULT_PATH_SENTINEL = "__INDESIGN_MCP_RESULT_PATH__";
 
 /**
+ * Returns the JavaScript source representation of a primitive value, safe
+ * for interpolation into an ExtendScript body string. Always use this when
+ * embedding tool input values into a script:
+ *
+ *   const body = `var w = ${lit(input.width_mm)}; var name = ${lit(input.name)};`;
+ *
+ * Strings get JSON-quoted (escaping handled). Numbers and booleans serialize
+ * as their JS literal form. null/undefined become "null".
+ */
+export function lit(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "string") return JSON.stringify(value);
+  return String(value);
+}
+
+/**
  * Minimal JSON.stringify shim for InDesign's ExtendScript engine, which is
  * pre-ES5 and does not provide a global JSON. Handles primitives, arrays, and
  * plain objects. Strings are escaped to be JSON-safe.
