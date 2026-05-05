@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`wrapExtendScript > matches the documented snapshot 1`] = `
+"
+ObjC.import("Foundation");
+
+var resultPath = "__INDESIGN_MCP_RESULT_PATH__";
+var bodyText = "return { x: 1 };";
+
+function writeResult(envObj) {
+  var s = $.NSString.alloc.initWithUTF8String(JSON.stringify(envObj));
+  s.writeToFileAtomicallyEncodingError(resultPath, true, $.NSUTF8StringEncoding, null);
+}
+
+try {
+  var indd = Application("Adobe InDesign 2026");
+  // Build a self-invoking ExtendScript that returns a JSON string we can re-parse.
+  // Errors inside ExtendScript surface as exceptions raised back into JXA.
+  var wrappedBody =
+    "(function(){" +
+    "  try {" +
+    "    var __r = (function(){" + bodyText + "})();" +
+    "    return JSON.stringify({ok:true, result: __r});" +
+    "  } catch (e) {" +
+    "    return JSON.stringify({" +
+    "      ok:false," +
+    "      error:{kind:'script_error', message:String(e.message || e), stack:String(e.stack || '')}" +
+    "    });" +
+    "  }" +
+    "})();";
+  var raw = indd.doScript(wrappedBody, { language: "javascript" });
+  // raw is a JSON string produced by the inner script; trust and forward.
+  var env = JSON.parse(String(raw));
+  writeResult(env);
+} catch (outer) {
+  // Most likely cause: InDesign isn't running.
+  var msg = String(outer.message || outer);
+  var kind = (msg.indexOf("Application can't be found") !== -1)
+    ? "app_not_available"
+    : "script_error";
+  writeResult({ ok:false, error: { kind: kind, message: msg } });
+}
+"
+`;
