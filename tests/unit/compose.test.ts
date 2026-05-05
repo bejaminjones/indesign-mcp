@@ -173,4 +173,28 @@ describe("wrapExtendScript", () => {
     expect(env.ok).toBe(false);
     expect(env.error.kind).toBe("app_not_available");
   });
+
+  it("inner ExtendScript produces valid JSON without a global JSON object", () => {
+    // The motivating regression: InDesign's ExtendScript engine has no global
+    // JSON. The wrapper ships a _stringify polyfill that runs inside the inner
+    // script. This test extracts the inner source and evaluates it in a context
+    // with NO globals, asserting the polyfill produces parseable JSON.
+    const wrapped = wrapExtendScript(
+      `return { v: "21.3", arr: [1, 2], esc: 'she said "hi"', nested: { ok: true } };`,
+    );
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    // Prepend a line that nukes the global JSON so the inner script must use
+    // its own _stringify polyfill — simulating ExtendScript's pre-ES5 env.
+    const sourceWithNoJSON = `JSON = undefined;\n${innerSource}`;
+
+    const result = new Script(sourceWithNoJSON).runInNewContext({});
+    expect(typeof result).toBe("string");
+    expect(JSON.parse(result as string)).toEqual({
+      ok: true,
+      result: { v: "21.3", arr: [1, 2], esc: 'she said "hi"', nested: { ok: true } },
+    });
+  });
 });
