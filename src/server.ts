@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -34,6 +35,7 @@ export function createServer(opts: CreateServerOptions): Server {
     const { name, arguments: rawArgs } = req.params;
     const tool = registry.get(name);
     if (!tool) {
+      await logger.error("unknown_tool", { name });
       const env = fail("invalid_args", `unknown tool: ${name}`);
       return toMcpResult(env);
     }
@@ -43,7 +45,7 @@ export function createServer(opts: CreateServerOptions): Server {
       logger.error("invalid_args", { name, error: parsed.error.format() });
       return toMcpResult(env);
     }
-    const callId = `${name}-${Date.now()}`;
+    const callId = `${name}-${randomUUID()}`;
     await logger.info("tool_call", { id: callId, name, args: parsed.data });
     try {
       const env = await tool.handler(parsed.data);
