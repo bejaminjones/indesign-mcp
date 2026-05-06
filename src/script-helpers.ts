@@ -2,10 +2,15 @@
  * ExtendScript helper functions emitted as source strings, for inclusion
  * in tool body scripts via `prelude(...)` from compose.ts.
  *
- * Each helper throws a structured object on failure: `{ name: "<kind>",
- * message: string, entity?: string, id?: string }`. wrapExtendScript's
- * inner catch routes structured throws to kind-specific failure envelopes
- * (e.g., `not_found`) when the `name` matches a known ErrorKind.
+ * Most helpers (the `findX` family) throw a structured object on failure:
+ * `{ name: "<kind>", message: string, entity?: string, id?: string }`.
+ * wrapExtendScript's inner catch routes structured throws to kind-specific
+ * failure envelopes (e.g., `not_found`) when the `name` matches a known
+ * ErrorKind.
+ *
+ * Some helpers (e.g. `resolveSwatch`) are upsert-style: they look up an
+ * entity by name and create it on miss, returning unconditionally rather
+ * than throwing.
  *
  * `findFrameById` resolves via `.getElements()[0]`, so callers receive the
  * typed subclass (TextFrame, Rectangle, etc.) rather than a generic
