@@ -66,7 +66,7 @@ try {
 export const createImageFrameTool = defineTool<Input, Result>({
   name: "create_image_frame",
   description:
-    "Creates an empty rectangle on a specified page, configured so a future place_image call auto-fits the placed graphic. Returns the frame and page IDs.",
+    "Creates an empty rectangle on a specified page (bounds in mm), configured so a future place_image call auto-fits the placed graphic. Returns the frame and page IDs.",
   inputSchema: InputSchema,
   async handler(input) {
     const env = await runScriptWithResultFile<ScriptResult>({
