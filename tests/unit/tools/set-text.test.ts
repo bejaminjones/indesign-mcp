@@ -75,6 +75,25 @@ describe("set_text tool", () => {
     expect(env.document_state_delta).toBeUndefined();
   });
 
+  it("normalizes \\n and \\r\\n to \\r before dispatching", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { frame_id: "f1", character_count: 5 },
+    });
+
+    await setTextTool.handler({
+      frame_id: "f1",
+      text: "A\nB\r\nC",
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    // After normalization the text becomes "A\rB\rC".
+    // lit() JSON-stringifies it → "A\\rB\\rC" in the script source.
+    // wrapExtendScript JSON-stringifies the whole script for JXA → "A\\\\rB\\\\rC".
+    // Verifying the normalization happened at the handler level: \\n shouldn't appear in the dispatched script.
+    expect(arg.scriptTemplate).not.toContain('A\\nB');
+  });
+
   it("propagates failure envelopes verbatim", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: false,

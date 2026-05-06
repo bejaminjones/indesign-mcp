@@ -53,9 +53,13 @@ export const setTextTool = defineTool<Input, Result>({
     "Replaces all text content in a text frame. Returns the frame ID and resulting character count.",
   inputSchema: InputSchema,
   async handler(input) {
+    // InDesign uses \r as paragraph separator. Normalize CRLF and LF to CR
+    // so callers can use natural \n-separated text and get expected paragraph
+    // structure.
+    const normalizedText = input.text.replace(/\r\n|\n/g, "\r");
     return runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",
-      scriptTemplate: wrapExtendScript(buildScriptBody(input)),
+      scriptTemplate: wrapExtendScript(buildScriptBody({ ...input, text: normalizedText })),
       resultSchema: ScriptResultSchema,
     });
   },
