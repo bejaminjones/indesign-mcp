@@ -23,6 +23,7 @@ import { overrideParentItemOnPageTool } from "./tools/override-parent-item-on-pa
 import { insertPageNumberMarkerTool } from "./tools/insert-page-number-marker.js";
 import { defineCharacterStyleTool } from "./tools/define-character-style.js";
 import { applyCharacterStyleToRangeTool } from "./tools/apply-character-style-to-range.js";
+import { setTextInRangeTool } from "./tools/set-text-in-range.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -48,6 +49,7 @@ async function main() {
   registry.register(insertPageNumberMarkerTool);
   registry.register(defineCharacterStyleTool);
   registry.register(applyCharacterStyleToRangeTool);
+  registry.register(setTextInRangeTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
