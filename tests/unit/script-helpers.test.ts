@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findDocumentById, findPageById, findFrameById, findStyleByName } from "../../src/script-helpers.js";
+import { findDocumentById, findPageById, findFrameById, findStyleByName, resolveSwatch } from "../../src/script-helpers.js";
 import { prelude } from "../../src/compose.js";
 
 describe("script helpers", () => {
@@ -34,5 +34,11 @@ describe("script helpers", () => {
     expect(findStyleByName).toContain("function findStyleByName");
     expect(findStyleByName).toContain('throw { name: "not_found"');
     expect(findStyleByName).toContain("doc.paragraphStyles.itemByName");
+  });
+
+  it("resolveSwatch is a non-empty function declaration", () => {
+    expect(resolveSwatch).toContain("function resolveSwatch");
+    expect(resolveSwatch).toContain("doc.colors.itemByName");
+    expect(resolveSwatch).toContain("ColorSpace.RGB");
   });
 });

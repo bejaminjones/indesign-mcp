@@ -49,3 +49,23 @@ function findStyleByName(doc, name) {
   return s;
 }
 `.trim();
+
+export const resolveSwatch = `
+function resolveSwatch(doc, hex) {
+  // hex format: "#RRGGBB" (caller already uppercased)
+  var swatchName = "auto-" + hex;
+  var s = doc.colors.itemByName(swatchName);
+  if (!s.isValid) {
+    var r = parseInt(hex.substr(1, 2), 16);
+    var g = parseInt(hex.substr(3, 2), 16);
+    var b = parseInt(hex.substr(5, 2), 16);
+    s = doc.colors.add({
+      name: swatchName,
+      model: ColorModel.PROCESS,
+      space: ColorSpace.RGB,
+      colorValue: [r, g, b]
+    });
+  }
+  return s;
+}
+`.trim();

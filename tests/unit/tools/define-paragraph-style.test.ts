@@ -131,7 +131,7 @@ describe("define_paragraph_style tool", () => {
     expect(arg.scriptTemplate).toContain("paragraphStyles");
   });
 
-  it("dispatches a script that converts color_hex to RGB triple [255, 0, 0]", async () => {
+  it("dispatches a script that resolves color_hex via resolveSwatch", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
       result: { style_id: "s1", name: "Headline", swatch_id: "sw1" },
@@ -143,8 +143,8 @@ describe("define_paragraph_style tool", () => {
     });
 
     const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
-    expect(arg.scriptTemplate).toContain("[255, 0, 0]");
-    expect(arg.scriptTemplate).toContain("auto-#FF0000");
+    expect(arg.scriptTemplate).toContain("resolveSwatch(doc,");
+    expect(arg.scriptTemplate).toContain("#FF0000");
   });
 
   it("uppercases color_hex when constructing the swatch name", async () => {
@@ -159,7 +159,7 @@ describe("define_paragraph_style tool", () => {
     });
 
     const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
-    expect(arg.scriptTemplate).toContain("auto-#ABCDEF");
+    expect(arg.scriptTemplate).toContain("#ABCDEF");
   });
 
   it("dispatches a script that joins font_family and font_style with tab separator", async () => {
