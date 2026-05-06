@@ -3,6 +3,7 @@ import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
 import { wrapExtendScript, lit, prelude } from "../compose.js";
 import { findDocumentById, resolveSwatch } from "../script-helpers.js";
+import { ok } from "../errors.js";
 
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
@@ -31,6 +32,7 @@ type Input = z.infer<typeof InputSchema>;
 const ScriptResultSchema = z.object({
   style_id: z.string(),
   name: z.string(),
+  on_collision_outcome: z.enum(["created", "updated", "versioned"]),
   swatch_id: z.string().optional(),
 });
 
@@ -39,6 +41,7 @@ type ScriptResult = z.infer<typeof ScriptResultSchema>;
 interface Result {
   style_id: string;
   name: string;
+  on_collision_outcome: "created" | "updated" | "versioned";
   swatch_id?: string;
 }
 
@@ -145,7 +148,8 @@ ${fontSetup}
 ${attrs.join("\n")}
 var result = {
   style_id: String(style.id),
-  name: name
+  name: name,
+  on_collision_outcome: outcome
 };
 if (swatchId !== undefined) result.swatch_id = swatchId;
 return result;
@@ -158,10 +162,20 @@ export const defineParagraphStyleTool = defineTool<Input, Result>({
     "Creates a paragraph style with the given attributes. Auto-creates an RGB swatch when color_hex is provided. Returns the style ID and final name (which may differ from the input if on_collision is 'version').",
   inputSchema: InputSchema,
   async handler(input) {
-    return runScriptWithResultFile<ScriptResult>({
+    const env = await runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",
       scriptTemplate: wrapExtendScript(buildScriptBody(input)),
       resultSchema: ScriptResultSchema,
+    });
+    if (!env.ok) return env;
+    const r = env.result!;
+    if (r.on_collision_outcome === "updated") {
+      return env;
+    }
+    return ok(r, {
+      document_state_delta: {
+        new_paragraph_styles: [{ name: r.name }],
+      },
     });
   },
 });

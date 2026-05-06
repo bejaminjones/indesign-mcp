@@ -121,7 +121,7 @@ describe("define_paragraph_style tool", () => {
   it("dispatches a script that interpolates the style name", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s1", name: "Body" },
+      result: { style_id: "s1", name: "Body", on_collision_outcome: "created" },
     });
 
     await defineParagraphStyleTool.handler({ name: "Body" });
@@ -134,7 +134,7 @@ describe("define_paragraph_style tool", () => {
   it("dispatches a script that resolves color_hex via resolveSwatch", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s1", name: "Headline", swatch_id: "sw1" },
+      result: { style_id: "s1", name: "Headline", on_collision_outcome: "created", swatch_id: "sw1" },
     });
 
     await defineParagraphStyleTool.handler({
@@ -150,7 +150,7 @@ describe("define_paragraph_style tool", () => {
   it("uppercases color_hex when constructing the swatch name", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s1", name: "Headline", swatch_id: "sw1" },
+      result: { style_id: "s1", name: "Headline", on_collision_outcome: "created", swatch_id: "sw1" },
     });
 
     await defineParagraphStyleTool.handler({
@@ -165,7 +165,7 @@ describe("define_paragraph_style tool", () => {
   it("dispatches a script that joins font_family and font_style with tab separator", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s1", name: "Headline" },
+      result: { style_id: "s1", name: "Headline", on_collision_outcome: "created" },
     });
 
     await defineParagraphStyleTool.handler({
@@ -196,20 +196,20 @@ describe("define_paragraph_style tool", () => {
   it("returns style_id and name", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s7", name: "Body" },
+      result: { style_id: "s7", name: "Body", on_collision_outcome: "created" },
     });
 
     const env = await defineParagraphStyleTool.handler({ name: "Body" });
 
     expect(env.ok).toBe(true);
     if (!env.ok) return;
-    expect(env.result).toEqual({ style_id: "s7", name: "Body" });
+    expect(env.result).toEqual({ style_id: "s7", name: "Body", on_collision_outcome: "created" });
   });
 
   it("returns swatch_id when color was provided", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { style_id: "s1", name: "Body", swatch_id: "sw1" },
+      result: { style_id: "s1", name: "Body", on_collision_outcome: "created", swatch_id: "sw1" },
     });
 
     const env = await defineParagraphStyleTool.handler({
@@ -219,7 +219,7 @@ describe("define_paragraph_style tool", () => {
 
     expect(env.ok).toBe(true);
     if (!env.ok) return;
-    expect(env.result).toEqual({ style_id: "s1", name: "Body", swatch_id: "sw1" });
+    expect(env.result).toEqual({ style_id: "s1", name: "Body", on_collision_outcome: "created", swatch_id: "sw1" });
   });
 
   it("propagates name_collision failures verbatim", async () => {
@@ -232,5 +232,65 @@ describe("define_paragraph_style tool", () => {
 
     expectFailure(env);
     expect(env.error.kind).toBe("name_collision");
+  });
+
+  // --- on_collision_outcome and delta ---
+
+  it("returns on_collision_outcome: created when style is new", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Body", on_collision_outcome: "created" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({ name: "Body" });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.result?.on_collision_outcome).toBe("created");
+  });
+
+  it("emits new_paragraph_styles delta on created outcome", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Body", on_collision_outcome: "created" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({ name: "Body" });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.document_state_delta?.new_paragraph_styles).toEqual([{ name: "Body" }]);
+  });
+
+  it("emits new_paragraph_styles delta on versioned outcome with the final name", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s2", name: "Body 2", on_collision_outcome: "versioned" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({
+      name: "Body",
+      on_collision: "version",
+    });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.document_state_delta?.new_paragraph_styles).toEqual([{ name: "Body 2" }]);
+  });
+
+  it("does not emit a delta when outcome is updated", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Body", on_collision_outcome: "updated" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({
+      name: "Body",
+      on_collision: "update",
+    });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.document_state_delta).toBeUndefined();
   });
 });
