@@ -68,7 +68,7 @@ try {
 
   var frames = [];
   for (var j = 0; j < page.pageItems.length; j++) {
-    var item = page.pageItems[j];
+    var item = page.pageItems[j].getElements()[0];
     var ctor = item.constructor.name;
 
     var frameType;
