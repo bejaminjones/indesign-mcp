@@ -34,6 +34,8 @@ export interface DocumentStateDelta {
     page_count: number;       // 1 (single) or 2 (facing)
   }>;
   new_character_styles?: Array<{ name: string }>;   // from define_character_style
+  new_paragraph_styles?: Array<{ name: string }>;   // from define_paragraph_style (refactor #74)
+  new_swatches?: Array<{ name: string }>;            // from create_swatch
 }
 
 export interface SuccessEnvelope<T> {

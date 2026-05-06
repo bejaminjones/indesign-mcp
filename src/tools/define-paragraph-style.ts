@@ -3,6 +3,7 @@ import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
 import { wrapExtendScript, lit, prelude } from "../compose.js";
 import { findDocumentById, resolveSwatch } from "../script-helpers.js";
+import { ok } from "../errors.js";
 
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
@@ -17,7 +18,7 @@ const InputSchema = z
     color_hex: z.string().regex(HEX_COLOR_RE).optional(),
     space_before_pt: z.number().nonnegative().optional(),
     space_after_pt: z.number().nonnegative().optional(),
-    on_collision: z.enum(["error", "replace", "version"]).optional(),
+    on_collision: z.enum(["error", "update", "version"]).optional(),
     document_id: z.string().optional(),
   })
   .strict()
@@ -31,6 +32,7 @@ type Input = z.infer<typeof InputSchema>;
 const ScriptResultSchema = z.object({
   style_id: z.string(),
   name: z.string(),
+  on_collision_outcome: z.enum(["created", "updated", "versioned"]),
   swatch_id: z.string().optional(),
 });
 
@@ -39,6 +41,7 @@ type ScriptResult = z.infer<typeof ScriptResultSchema>;
 interface Result {
   style_id: string;
   name: string;
+  on_collision_outcome: "created" | "updated" | "versioned";
   swatch_id?: string;
 }
 
@@ -109,11 +112,20 @@ function buildScriptBody(input: Input): string {
           throw { name: "name_collision", message: "paragraph style \\"" + name + "\\" already exists", entity: "paragraph_style", id: name };
         }
         var style = doc.paragraphStyles.add({ name: name });
+        var outcome = "created";
       `
-      : onCollision === "replace"
+      : onCollision === "update"
         ? `
         var existing = doc.paragraphStyles.itemByName(name);
-        var style = existing.isValid ? existing : doc.paragraphStyles.add({ name: name });
+        var style;
+        var outcome;
+        if (existing.isValid) {
+          style = existing;
+          outcome = "updated";
+        } else {
+          style = doc.paragraphStyles.add({ name: name });
+          outcome = "created";
+        }
       `
         : `
         var baseName = name;
@@ -123,6 +135,7 @@ function buildScriptBody(input: Input): string {
           i++;
         }
         var style = doc.paragraphStyles.add({ name: name });
+        var outcome = "versioned";
       `;
 
   return `
@@ -135,7 +148,8 @@ ${fontSetup}
 ${attrs.join("\n")}
 var result = {
   style_id: String(style.id),
-  name: name
+  name: name,
+  on_collision_outcome: outcome
 };
 if (swatchId !== undefined) result.swatch_id = swatchId;
 return result;
@@ -148,10 +162,20 @@ export const defineParagraphStyleTool = defineTool<Input, Result>({
     "Creates a paragraph style with the given attributes. Auto-creates an RGB swatch when color_hex is provided. Returns the style ID and final name (which may differ from the input if on_collision is 'version').",
   inputSchema: InputSchema,
   async handler(input) {
-    return runScriptWithResultFile<ScriptResult>({
+    const env = await runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",
       scriptTemplate: wrapExtendScript(buildScriptBody(input)),
       resultSchema: ScriptResultSchema,
+    });
+    if (!env.ok) return env;
+    const r = env.result!;
+    if (r.on_collision_outcome === "updated") {
+      return env;
+    }
+    return ok(r, {
+      document_state_delta: {
+        new_paragraph_styles: [{ name: r.name }],
+      },
     });
   },
 });

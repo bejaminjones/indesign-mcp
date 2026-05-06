@@ -26,6 +26,7 @@ integrationGate("define_paragraph_style (integration)", () => {
       if (!env.ok) return;
       expect(env.result?.name).toBe("Body");
       expect(typeof env.result?.style_id).toBe("string");
+      expect(env.result?.on_collision_outcome).toBe("created");
     },
     INTEGRATION_TIMEOUT_MS,
   );
@@ -90,6 +91,7 @@ integrationGate("define_paragraph_style (integration)", () => {
       expect(second.ok).toBe(true);
       if (!second.ok) return;
       expect(second.result?.name).toBe("Body 2");
+      expect(second.result?.on_collision_outcome).toBe("versioned");
     },
     INTEGRATION_TIMEOUT_MS,
   );

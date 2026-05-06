@@ -27,6 +27,11 @@ import { setTextInRangeTool } from "./tools/set-text-in-range.js";
 import { setFrameInsetTool } from "./tools/set-frame-inset.js";
 import { setFrameColumnsTool } from "./tools/set-frame-columns.js";
 import { threadTextFramesTool } from "./tools/thread-text-frames.js";
+import { listParagraphStylesTool } from "./tools/list-paragraph-styles.js";
+import { listPagesTool } from "./tools/list-pages.js";
+import { createSwatchTool } from "./tools/create-swatch.js";
+import { duplicateFrameTool } from "./tools/duplicate-frame.js";
+import { findReplaceTool } from "./tools/find-replace.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -56,6 +61,11 @@ async function main() {
   registry.register(setFrameInsetTool);
   registry.register(setFrameColumnsTool);
   registry.register(threadTextFramesTool);
+  registry.register(listParagraphStylesTool);
+  registry.register(listPagesTool);
+  registry.register(createSwatchTool);
+  registry.register(duplicateFrameTool);
+  registry.register(findReplaceTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
