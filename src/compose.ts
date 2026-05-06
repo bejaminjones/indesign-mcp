@@ -73,14 +73,45 @@ export function prelude(...sources: string[]): string {
  * Sentinel RESULT_PATH_SENTINEL is substituted by runScriptWithResultFile.
  *
  * Result envelopes written:
- *   success     → {ok:true, result}
- *   body throws → {ok:false, error:{kind:"script_error", message, stack}}
- *   no InDesign → {ok:false, error:{kind:"app_not_available", message}}
+ *   success              → {ok:true, result}
+ *   structured throw     → {ok:false, error:{kind, message, [entity], [id], [stack]}}
+ *   plain JS throw       → {ok:false, error:{kind:"script_error", message, stack}}
+ *   no InDesign          → {ok:false, error:{kind:"app_not_available", message}}
  */
 export function wrapExtendScript(body: string): string {
   const innerSource =
     ES_STRINGIFY +
-    `\n(function() {\n  try {\n    var __r = (function() {\n${body}\n    })();\n    return '{"ok":true,"result":' + _stringify(__r) + '}';\n  } catch (e) {\n    var msg = String(e.message || e);\n    var stk = String(e.stack || '');\n    return '{"ok":false,"error":{"kind":"script_error","message":' + _stringify(msg) + ',"stack":' + _stringify(stk) + '}}';\n  }\n})();\n`;
+    `
+(function() {
+  var knownKinds = {
+    "not_found": true,
+    "app_not_available": true,
+    "io_error": true,
+    "name_collision": true,
+    "invalid_args": true,
+    "timeout": true,
+    "script_error": true
+  };
+  try {
+    var __r = (function() {
+${body}
+    })();
+    return '{"ok":true,"result":' + _stringify(__r) + '}';
+  } catch (e) {
+    if (e && typeof e === "object" && knownKinds[e.name]) {
+      var kindName = e.name;
+      var errObj = { kind: kindName, message: String(e.message || e.name) };
+      if (e.entity) errObj.entity = String(e.entity);
+      if (e.id) errObj.id = String(e.id);
+      if (e.stack) errObj.stack = String(e.stack);
+      return _stringify({ ok: false, error: errObj });
+    }
+    var msg = String(e.message || e);
+    var stk = String(e.stack || '');
+    return _stringify({ ok: false, error: { kind: "script_error", message: msg, stack: stk } });
+  }
+})();
+`;
 
   const innerLiteral = JSON.stringify(innerSource);
 

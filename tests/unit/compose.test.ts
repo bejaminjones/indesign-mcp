@@ -197,4 +197,50 @@ describe("wrapExtendScript", () => {
       result: { v: "21.3", arr: [1, 2], esc: 'she said "hi"', nested: { ok: true } },
     });
   });
+
+  it("when the inner script throws a structured not_found, propagates kind and entity", () => {
+    const wrapped = wrapExtendScript(
+      `throw { name: "not_found", message: "frame missing", entity: "frame", id: "f99" };`,
+    );
+
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    const result = new Script(innerSource).runInNewContext({});
+    expect(typeof result).toBe("string");
+    const env = JSON.parse(result as string);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("not_found");
+    expect(env.error.entity).toBe("frame");
+    expect(env.error.id).toBe("f99");
+    expect(env.error.message).toBe("frame missing");
+  });
+
+  it("when the inner script throws a plain Error, falls back to script_error", () => {
+    const wrapped = wrapExtendScript(`throw new Error("plain error");`);
+
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    const result = new Script(innerSource).runInNewContext({});
+    const env = JSON.parse(result as string);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("script_error");
+    expect(env.error.message).toBe("plain error");
+  });
+
+  it("when the inner script throws an unknown structured object, falls back to script_error", () => {
+    const wrapped = wrapExtendScript(`throw { name: "weird_kind", message: "huh" };`);
+
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    const result = new Script(innerSource).runInNewContext({});
+    const env = JSON.parse(result as string);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("script_error");
+  });
 });
