@@ -90,7 +90,7 @@ describe("create_document tool", () => {
     expect(arg.scriptTemplate).toContain("210");
     expect(arg.scriptTemplate).toContain("297");
     expect(arg.scriptTemplate).toContain("pagesPerDocument = 2");
-    expect(arg.scriptTemplate).toContain("marginPrefs.top = 12");
+    expect(arg.scriptTemplate).toContain("marginPreferences.top = 12");
   });
 
   it("swaps preset dimensions for landscape orientation", async () => {
@@ -163,22 +163,60 @@ describe("create_document tool", () => {
     expect(result.success).toBe(false);
   });
 
-  it("emits a warning when facing-page margins are used", async () => {
+  it("script contains per-page loop when setting margins", async () => {
     vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
       ok: true,
-      result: { document_id: "d", page_ids: ["p"], page_count: 1 },
+      result: { document_id: "d", page_ids: ["p1"], page_count: 1 },
+    });
+
+    await createDocumentTool.handler({
+      preset: "A4",
+      margins_mm: { top: 12, bottom: 12, left: 12, right: 12 },
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    expect(arg.scriptTemplate).toContain("doc.pages");
+    expect(arg.scriptTemplate).toContain("marginPreferences.top");
+  });
+
+  it("script mirrors inside/outside for facing-page docs", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { document_id: "d", page_ids: ["p1", "p2"], page_count: 2 },
+    });
+
+    await createDocumentTool.handler({
+      preset: "A4",
+      facing_pages: true,
+      pages: 2,
+      margins_mm: { top: 10, bottom: 10, inside: 25, outside: 15 },
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    // Must contain the LEFT_HAND mirroring branch
+    expect(arg.scriptTemplate).toContain("LEFT_HAND");
+    // Must reference both inside and outside values
+    expect(arg.scriptTemplate).toContain("25");
+    expect(arg.scriptTemplate).toContain("15");
+  });
+
+  it("does not emit a warning for facing-page margins after the fix", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { document_id: "d", page_ids: ["p1", "p2"], page_count: 2 },
     });
 
     const env = await createDocumentTool.handler({
       preset: "A4",
       facing_pages: true,
-      margins_mm: { top: 12, bottom: 12, inside: 14, outside: 10 },
+      pages: 2,
+      margins_mm: { top: 10, bottom: 10, inside: 25, outside: 15 },
     });
 
     expect(env.ok).toBe(true);
     if (!env.ok) return;
-    expect(env.warnings).toBeDefined();
-    expect(env.warnings![0]).toMatch(/facing/i);
+    // No warnings — per-page mirroring handles this correctly now
+    expect(env.warnings).toBeUndefined();
   });
 
   it("rejects a script result that doesn't match ScriptResultSchema", async () => {

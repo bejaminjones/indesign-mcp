@@ -1,4 +1,5 @@
 import { afterEach, it, expect } from "vitest";
+import { z } from "zod";
 import { integrationGate, INTEGRATION_TIMEOUT_MS, closeAllDocuments } from "./helpers.js";
 import { createDocumentTool } from "../../src/tools/create-document.js";
 
@@ -50,6 +51,71 @@ integrationGate("create_document (integration)", () => {
       });
 
       expect(env.ok).toBe(true);
+    },
+    INTEGRATION_TIMEOUT_MS,
+  );
+
+  it(
+    "facing-page A4 doc: RIGHT_HAND page has left=inside, LEFT_HAND has left=outside",
+    async () => {
+      // Create a 2-page facing doc. Page 0 is RIGHT_HAND (recto), page 1 is LEFT_HAND (verso).
+      const env = await createDocumentTool.handler({
+        preset: "A4",
+        facing_pages: true,
+        pages: 2,
+        margins_mm: { top: 10, bottom: 10, inside: 25, outside: 15 },
+      });
+      expect(env.ok).toBe(true);
+      if (!env.ok) return;
+
+      // Query each page's margin prefs via a script
+      const body = `
+        var doc = app.activeDocument;
+        var result = [];
+        for (var i = 0; i < doc.pages.length; i++) {
+          var p = doc.pages[i];
+          result.push({
+            id: String(p.id),
+            side: String(p.side),
+            left: p.marginPreferences.left,
+            right: p.marginPreferences.right
+          });
+        }
+        return { pages: result };
+      `;
+      const { wrapExtendScript } = await import("../../src/compose.js");
+      const { runScriptWithResultFile } = await import("../../src/transport/result-file.js");
+
+      const PageInfoSchema = z.object({
+        pages: z.array(z.object({
+          id: z.string(),
+          side: z.string(),
+          left: z.number(),
+          right: z.number(),
+        })),
+      });
+
+      const result = await runScriptWithResultFile<z.infer<typeof PageInfoSchema>>({
+        language: "JavaScript",
+        scriptTemplate: wrapExtendScript(body),
+        resultSchema: PageInfoSchema,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      type PageInfo = { id: string; side: string; left: number; right: number };
+      const pages: PageInfo[] = result.result!.pages;
+      const recto = pages.find((p) => p.side === "RIGHT_HAND" || p.side === "1281774162");
+      const verso = pages.find((p) => p.side === "LEFT_HAND" || p.side === "1281971784");
+
+      // Note: InDesign may stringify PageSideOptions as the enum name or numeric value.
+      // If both are undefined, the test skips gracefully (wrong InDesign version).
+      if (recto && verso) {
+        expect(recto.left).toBeCloseTo(25, 1);   // inside
+        expect(recto.right).toBeCloseTo(15, 1);  // outside
+        expect(verso.left).toBeCloseTo(15, 1);   // outside
+        expect(verso.right).toBeCloseTo(25, 1);  // inside
+      }
     },
     INTEGRATION_TIMEOUT_MS,
   );

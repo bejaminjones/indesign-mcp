@@ -115,6 +115,38 @@ function buildScriptBody(input: Input): string {
   const columns = input.columns ?? { count: 1, gutter_mm: 0 };
   const pages = input.pages ?? 1;
   const facing = input.facing_pages ?? false;
+  const isFacingMargins = "inside" in input.margins_mm;
+
+  // For facing-page documents with inside/outside margins, build a per-page
+  // mirroring loop. Otherwise use the simpler uniform-margin loop.
+  const perPageMarginLoop = isFacingMargins
+    ? `
+      for (var i = 0; i < doc.pages.length; i++) {
+        var p = doc.pages[i];
+        p.marginPreferences.top = ${lit(margins.top)};
+        p.marginPreferences.bottom = ${lit(margins.bottom)};
+        p.marginPreferences.columnCount = ${lit(columns.count)};
+        p.marginPreferences.columnGutter = ${lit(columns.gutter_mm)};
+        if (String(p.side) === "LEFT_HAND") {
+          p.marginPreferences.left = ${lit((input.margins_mm as { outside: number }).outside)};
+          p.marginPreferences.right = ${lit((input.margins_mm as { inside: number }).inside)};
+        } else {
+          p.marginPreferences.left = ${lit((input.margins_mm as { inside: number }).inside)};
+          p.marginPreferences.right = ${lit((input.margins_mm as { outside: number }).outside)};
+        }
+      }
+    `
+    : `
+      for (var i = 0; i < doc.pages.length; i++) {
+        var p = doc.pages[i];
+        p.marginPreferences.top = ${lit(margins.top)};
+        p.marginPreferences.bottom = ${lit(margins.bottom)};
+        p.marginPreferences.left = ${lit(margins.left)};
+        p.marginPreferences.right = ${lit(margins.right)};
+        p.marginPreferences.columnCount = ${lit(columns.count)};
+        p.marginPreferences.columnGutter = ${lit(columns.gutter_mm)};
+      }
+    `;
 
   return `
     var prevUnits = app.scriptPreferences.measurementUnit;
@@ -127,13 +159,7 @@ function buildScriptBody(input: Input): string {
       dp.pageHeight = ${lit(dims.height_mm)};
       dp.pagesPerDocument = ${lit(pages)};
 
-      var marginPrefs = doc.marginPreferences;
-      marginPrefs.top = ${lit(margins.top)};
-      marginPrefs.bottom = ${lit(margins.bottom)};
-      marginPrefs.left = ${lit(margins.left)};
-      marginPrefs.right = ${lit(margins.right)};
-      marginPrefs.columnCount = ${lit(columns.count)};
-      marginPrefs.columnGutter = ${lit(columns.gutter_mm)};
+      ${perPageMarginLoop}
 
       var pageIds = [];
       for (var i = 0; i < doc.pages.length; i++) {
@@ -165,10 +191,6 @@ export const createDocumentTool = defineTool<Input, Result>({
     });
     if (!env.ok) return env;
     const r = env.result!;
-    const isFacingMargins = "inside" in input.margins_mm;
-    const warnings = isFacingMargins
-      ? ["facing-page margins applied as left=inside/right=outside; verso pages will be mirrored incorrectly until per-spread setup is supported"]
-      : undefined;
     return ok(
       { document_id: r.document_id, page_ids: r.page_ids },
       {
@@ -176,7 +198,6 @@ export const createDocumentTool = defineTool<Input, Result>({
           page_count: r.page_count,
           new_page_ids: r.page_ids,
         },
-        warnings,
       },
     );
   },
