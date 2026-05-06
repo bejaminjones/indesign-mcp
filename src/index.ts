@@ -15,6 +15,7 @@ import { applyParagraphStyleTool } from "./tools/apply-paragraph-style.js";
 import { getPageStateTool } from "./tools/get-page-state.js";
 import { createImageFrameTool } from "./tools/create-image-frame.js";
 import { placeImageTool } from "./tools/place-image.js";
+import { createRectangleTool } from "./tools/create-rectangle.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -32,6 +33,7 @@ async function main() {
   registry.register(getPageStateTool);
   registry.register(createImageFrameTool);
   registry.register(placeImageTool);
+  registry.register(createRectangleTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
