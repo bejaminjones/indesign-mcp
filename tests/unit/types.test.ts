@@ -123,4 +123,44 @@ describe("DocumentStateDelta", () => {
     expect(delta.changed_frames?.[0].applied_character_style_range?.end_index).toBe(13);
     expect(delta.changed_frames?.[1].applied_character_style_range).toBeUndefined();
   });
+
+  it("changed_frames items accept inset_mm", () => {
+    const delta: DocumentStateDelta = {
+      changed_frames: [
+        {
+          id: "f1",
+          inset_mm: { top: 5, left: 5, bottom: 5, right: 5 },
+        },
+        { id: "f2", bounds: [0, 0, 100, 50] },
+      ],
+    };
+    expect(delta.changed_frames?.[0].inset_mm?.top).toBe(5);
+    expect(delta.changed_frames?.[0].inset_mm?.left).toBe(5);
+    expect(delta.changed_frames?.[0].inset_mm?.bottom).toBe(5);
+    expect(delta.changed_frames?.[0].inset_mm?.right).toBe(5);
+    expect(delta.changed_frames?.[1].inset_mm).toBeUndefined();
+  });
+
+  it("changed_frames items accept columns", () => {
+    const delta: DocumentStateDelta = {
+      changed_frames: [
+        { id: "f1", columns: { count: 2, gutter_mm: 4 } },
+        { id: "f2" },
+      ],
+    };
+    expect(delta.changed_frames?.[0].columns?.count).toBe(2);
+    expect(delta.changed_frames?.[0].columns?.gutter_mm).toBe(4);
+    expect(delta.changed_frames?.[1].columns).toBeUndefined();
+  });
+
+  it("changed_frames items accept threaded_to_frame_id", () => {
+    const delta: DocumentStateDelta = {
+      changed_frames: [
+        { id: "f1", threaded_to_frame_id: "f2" },
+        { id: "f2" },
+      ],
+    };
+    expect(delta.changed_frames?.[0].threaded_to_frame_id).toBe("f2");
+    expect(delta.changed_frames?.[1].threaded_to_frame_id).toBeUndefined();
+  });
 });
