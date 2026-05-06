@@ -32,6 +32,12 @@ function findPageById(doc, id) {
   for (var i = 0; i < doc.pages.length; i++) {
     if (String(doc.pages[i].id) === id) return doc.pages[i];
   }
+  for (var j = 0; j < doc.masterSpreads.length; j++) {
+    var ms = doc.masterSpreads[j];
+    for (var k = 0; k < ms.pages.length; k++) {
+      if (String(ms.pages[k].id) === id) return ms.pages[k];
+    }
+  }
   throw { name: "not_found", message: "page " + id + " not found", entity: "page", id: id };
 }
 `.trim();
