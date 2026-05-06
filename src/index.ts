@@ -12,6 +12,7 @@ import { createTextFrameTool } from "./tools/create-text-frame.js";
 import { setTextTool } from "./tools/set-text.js";
 import { defineParagraphStyleTool } from "./tools/define-paragraph-style.js";
 import { applyParagraphStyleTool } from "./tools/apply-paragraph-style.js";
+import { getPageStateTool } from "./tools/get-page-state.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -26,6 +27,7 @@ async function main() {
   registry.register(setTextTool);
   registry.register(defineParagraphStyleTool);
   registry.register(applyParagraphStyleTool);
+  registry.register(getPageStateTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
