@@ -1,0 +1,62 @@
+import { z } from "zod";
+import { defineTool } from "./registry.js";
+import { runScriptWithResultFile } from "../transport/result-file.js";
+import { wrapExtendScript, lit, prelude } from "../compose.js";
+import { findDocumentById, findFrameById } from "../script-helpers.js";
+
+const InputSchema = z
+  .object({
+    frame_id: z.string(),
+    text: z.string(),
+    document_id: z.string().optional(),
+  })
+  .strict();
+
+type Input = z.infer<typeof InputSchema>;
+
+const ScriptResultSchema = z.object({
+  frame_id: z.string(),
+  character_count: z.number().int().nonnegative(),
+});
+
+type ScriptResult = z.infer<typeof ScriptResultSchema>;
+
+interface Result {
+  frame_id: string;
+  character_count: number;
+}
+
+function buildScriptBody(input: Input): string {
+  const docExpr =
+    input.document_id !== undefined
+      ? `findDocumentById(${lit(input.document_id)})`
+      : "app.activeDocument";
+
+  return `
+${prelude(findDocumentById, findFrameById)}
+var doc = ${docExpr};
+var frame = findFrameById(doc, ${lit(input.frame_id)});
+if (frame.constructor.name !== "TextFrame") {
+  throw { name: "not_found", message: "frame " + ${lit(input.frame_id)} + " is not a text frame", entity: "frame", id: ${lit(input.frame_id)} };
+}
+frame.contents = ${lit(input.text)};
+return {
+  frame_id: ${lit(input.frame_id)},
+  character_count: frame.contents.length
+};
+`;
+}
+
+export const setTextTool = defineTool<Input, Result>({
+  name: "set_text",
+  description:
+    "Replaces all text content in a text frame. Returns the frame ID and resulting character count.",
+  inputSchema: InputSchema,
+  async handler(input) {
+    return runScriptWithResultFile<ScriptResult>({
+      language: "JavaScript",
+      scriptTemplate: wrapExtendScript(buildScriptBody(input)),
+      resultSchema: ScriptResultSchema,
+    });
+  },
+});
