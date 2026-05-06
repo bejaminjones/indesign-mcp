@@ -21,6 +21,7 @@ import { createParentPageTool } from "./tools/create-parent-page.js";
 import { applyParentToPageTool } from "./tools/apply-parent-to-page.js";
 import { overrideParentItemOnPageTool } from "./tools/override-parent-item-on-page.js";
 import { insertPageNumberMarkerTool } from "./tools/insert-page-number-marker.js";
+import { defineCharacterStyleTool } from "./tools/define-character-style.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -44,6 +45,7 @@ async function main() {
   registry.register(applyParentToPageTool);
   registry.register(overrideParentItemOnPageTool);
   registry.register(insertPageNumberMarkerTool);
+  registry.register(defineCharacterStyleTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
