@@ -8,6 +8,7 @@ import { createDocumentTool } from "./tools/create-document.js";
 import { addPageTool } from "./tools/add-page.js";
 import { saveDocumentTool } from "./tools/save-document.js";
 import { exportPdfTool } from "./tools/export-pdf.js";
+import { createTextFrameTool } from "./tools/create-text-frame.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -18,6 +19,7 @@ async function main() {
   registry.register(addPageTool);
   registry.register(saveDocumentTool);
   registry.register(exportPdfTool);
+  registry.register(createTextFrameTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
