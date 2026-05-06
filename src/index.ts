@@ -27,6 +27,7 @@ import { setTextInRangeTool } from "./tools/set-text-in-range.js";
 import { setFrameInsetTool } from "./tools/set-frame-inset.js";
 import { setFrameColumnsTool } from "./tools/set-frame-columns.js";
 import { threadTextFramesTool } from "./tools/thread-text-frames.js";
+import { listFontsTool } from "./tools/list-fonts.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -56,6 +57,7 @@ async function main() {
   registry.register(setFrameInsetTool);
   registry.register(setFrameColumnsTool);
   registry.register(threadTextFramesTool);
+  registry.register(listFontsTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
