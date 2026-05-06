@@ -1,0 +1,236 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { defineParagraphStyleTool } from "../../../src/tools/define-paragraph-style.js";
+import { lastCall, expectFailure } from "../_helpers.js";
+
+vi.mock("../../../src/transport/result-file.js", () => ({
+  runScriptWithResultFile: vi.fn(),
+}));
+
+import { runScriptWithResultFile } from "../../../src/transport/result-file.js";
+
+describe("define_paragraph_style tool", () => {
+  beforeEach(() => {
+    vi.mocked(runScriptWithResultFile).mockReset();
+  });
+
+  it("has the expected metadata", () => {
+    expect(defineParagraphStyleTool.name).toBe("define_paragraph_style");
+    expect(defineParagraphStyleTool.description.length).toBeGreaterThan(0);
+  });
+
+  it("accepts minimal input (just name)", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({ name: "Body" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({ name: "" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects font_style without font_family", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        font_style: "Bold",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts font_family alone (no font_style)", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        font_family: "Helvetica Neue",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts font_family + font_style", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        font_family: "Helvetica Neue",
+        font_style: "Bold",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects invalid color_hex format", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        color_hex: "red",
+      }).success,
+    ).toBe(false);
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        color_hex: "#XYZ",
+      }).success,
+    ).toBe(false);
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        color_hex: "#FF",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts valid color_hex (case-insensitive)", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        color_hex: "#FF0000",
+      }).success,
+    ).toBe(true);
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        color_hex: "#ff0000",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects size_pt <= 0", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        size_pt: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        size_pt: -1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts leading_pt as 'auto'", () => {
+    expect(
+      defineParagraphStyleTool.inputSchema.safeParse({
+        name: "Body",
+        leading_pt: "auto",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("dispatches a script that interpolates the style name", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Body" },
+    });
+
+    await defineParagraphStyleTool.handler({ name: "Body" });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    expect(arg.scriptTemplate).toContain("Body");
+    expect(arg.scriptTemplate).toContain("paragraphStyles");
+  });
+
+  it("dispatches a script that converts color_hex to RGB triple [255, 0, 0]", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Headline", swatch_id: "sw1" },
+    });
+
+    await defineParagraphStyleTool.handler({
+      name: "Headline",
+      color_hex: "#FF0000",
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    expect(arg.scriptTemplate).toContain("[255, 0, 0]");
+    expect(arg.scriptTemplate).toContain("auto-#FF0000");
+  });
+
+  it("uppercases color_hex when constructing the swatch name", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Headline", swatch_id: "sw1" },
+    });
+
+    await defineParagraphStyleTool.handler({
+      name: "Headline",
+      color_hex: "#abcdef",
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    expect(arg.scriptTemplate).toContain("auto-#ABCDEF");
+  });
+
+  it("dispatches a script that joins font_family and font_style with tab separator", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Headline" },
+    });
+
+    await defineParagraphStyleTool.handler({
+      name: "Headline",
+      font_family: "Helvetica Neue",
+      font_style: "Bold",
+    });
+
+    const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
+    // The font name "Helvetica Neue\tBold" gets JSON-encoded to "Helvetica Neue\\tBold"
+    // by lit(), and that's then JSON-encoded again by wrapExtendScript.
+    // We just verify both family and style appear.
+    expect(arg.scriptTemplate).toContain("Helvetica Neue");
+    expect(arg.scriptTemplate).toContain("Bold");
+  });
+
+  it("accepts on_collision: 'replace' / 'version' / 'error'", () => {
+    for (const c of ["error", "replace", "version"] as const) {
+      expect(
+        defineParagraphStyleTool.inputSchema.safeParse({
+          name: "Body",
+          on_collision: c,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it("returns style_id and name", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s7", name: "Body" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({ name: "Body" });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.result).toEqual({ style_id: "s7", name: "Body" });
+  });
+
+  it("returns swatch_id when color was provided", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: true,
+      result: { style_id: "s1", name: "Body", swatch_id: "sw1" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({
+      name: "Body",
+      color_hex: "#000000",
+    });
+
+    expect(env.ok).toBe(true);
+    if (!env.ok) return;
+    expect(env.result).toEqual({ style_id: "s1", name: "Body", swatch_id: "sw1" });
+  });
+
+  it("propagates name_collision failures verbatim", async () => {
+    vi.mocked(runScriptWithResultFile).mockResolvedValueOnce({
+      ok: false,
+      error: { kind: "name_collision", message: "style 'Body' already exists" },
+    });
+
+    const env = await defineParagraphStyleTool.handler({ name: "Body" });
+
+    expectFailure(env);
+    expect(env.error.kind).toBe("name_collision");
+  });
+});

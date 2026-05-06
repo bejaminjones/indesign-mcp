@@ -10,6 +10,7 @@ import { saveDocumentTool } from "./tools/save-document.js";
 import { exportPdfTool } from "./tools/export-pdf.js";
 import { createTextFrameTool } from "./tools/create-text-frame.js";
 import { setTextTool } from "./tools/set-text.js";
+import { defineParagraphStyleTool } from "./tools/define-paragraph-style.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -22,6 +23,7 @@ async function main() {
   registry.register(exportPdfTool);
   registry.register(createTextFrameTool);
   registry.register(setTextTool);
+  registry.register(defineParagraphStyleTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
