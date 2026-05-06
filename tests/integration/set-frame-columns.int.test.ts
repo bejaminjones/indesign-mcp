@@ -75,7 +75,7 @@ integrationGate("set_frame_columns (integration)", () => {
   it(
     "collapses to single column with count = 1",
     async () => {
-      const create = await createDocumentTool.handler({ preset: "A4" });
+      const create = await createDocumentTool.handler({ preset: "A4", margins_mm: { top: 12, bottom: 12, left: 12, right: 12 } });
       expect(create.ok).toBe(true);
       if (!create.ok) return;
 
@@ -107,7 +107,7 @@ integrationGate("set_frame_columns (integration)", () => {
   it(
     "returns invalid_args for a non-text frame",
     async () => {
-      const create = await createDocumentTool.handler({ preset: "A4" });
+      const create = await createDocumentTool.handler({ preset: "A4", margins_mm: { top: 12, bottom: 12, left: 12, right: 12 } });
       expect(create.ok).toBe(true);
       if (!create.ok) return;
 
