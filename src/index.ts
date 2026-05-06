@@ -17,6 +17,7 @@ import { createImageFrameTool } from "./tools/create-image-frame.js";
 import { placeImageTool } from "./tools/place-image.js";
 import { createRectangleTool } from "./tools/create-rectangle.js";
 import { createLineTool } from "./tools/create-line.js";
+import { createParentPageTool } from "./tools/create-parent-page.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -36,6 +37,7 @@ async function main() {
   registry.register(placeImageTool);
   registry.register(createRectangleTool);
   registry.register(createLineTool);
+  registry.register(createParentPageTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
