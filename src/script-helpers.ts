@@ -90,3 +90,13 @@ function resolveSwatch(doc, hex) {
   return s;
 }
 `.trim();
+
+export const findCharacterStyleByName = `
+function findCharacterStyleByName(doc, name) {
+  var s = doc.characterStyles.itemByName(name);
+  if (!s.isValid) {
+    throw { name: "not_found", message: "character style \\"" + name + "\\" not found", entity: "character_style", id: name };
+  }
+  return s;
+}
+`.trim();
