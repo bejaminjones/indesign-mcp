@@ -55,6 +55,16 @@ function findStyleByName(doc, name) {
 }
 `.trim();
 
+export const findMasterSpreadByName = `
+function findMasterSpreadByName(doc, name) {
+  var s = doc.masterSpreads.itemByName(name);
+  if (!s.isValid) {
+    throw { name: "not_found", message: "parent spread \\"" + name + "\\" not found", entity: "parent_spread", id: name };
+  }
+  return s;
+}
+`.trim();
+
 export const resolveSwatch = `
 function resolveSwatch(doc, hex) {
   // hex format: "#RRGGBB" (caller already uppercased)

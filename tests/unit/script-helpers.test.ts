@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findDocumentById, findPageById, findFrameById, findStyleByName, resolveSwatch } from "../../src/script-helpers.js";
+import { findDocumentById, findPageById, findFrameById, findStyleByName, resolveSwatch, findMasterSpreadByName } from "../../src/script-helpers.js";
 import { prelude } from "../../src/compose.js";
 
 describe("script helpers", () => {
@@ -40,5 +40,12 @@ describe("script helpers", () => {
     expect(resolveSwatch).toContain("function resolveSwatch");
     expect(resolveSwatch).toContain("doc.colors.itemByName");
     expect(resolveSwatch).toContain("ColorSpace.RGB");
+  });
+
+  it("findMasterSpreadByName is a non-empty function declaration", () => {
+    expect(findMasterSpreadByName).toContain("function findMasterSpreadByName");
+    expect(findMasterSpreadByName).toContain('throw { name: "not_found"');
+    expect(findMasterSpreadByName).toContain("doc.masterSpreads.itemByName");
+    expect(findMasterSpreadByName).toContain('"parent_spread"');
   });
 });
