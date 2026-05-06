@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findDocumentById, findPageById } from "../../src/script-helpers.js";
+import { findDocumentById, findPageById, findFrameById, findStyleByName } from "../../src/script-helpers.js";
 import { prelude } from "../../src/compose.js";
 
 describe("script helpers", () => {
@@ -22,5 +22,17 @@ describe("script helpers", () => {
 
   it("prelude with no helpers returns just a newline", () => {
     expect(prelude()).toBe("\n");
+  });
+
+  it("findFrameById is a non-empty function declaration", () => {
+    expect(findFrameById).toContain("function findFrameById");
+    expect(findFrameById).toContain('throw { name: "not_found"');
+    expect(findFrameById).toContain("doc.pageItems");
+  });
+
+  it("findStyleByName is a non-empty function declaration", () => {
+    expect(findStyleByName).toContain("function findStyleByName");
+    expect(findStyleByName).toContain('throw { name: "not_found"');
+    expect(findStyleByName).toContain("doc.paragraphStyles.itemByName");
   });
 });

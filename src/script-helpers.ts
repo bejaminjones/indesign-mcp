@@ -25,3 +25,22 @@ function findPageById(doc, id) {
   throw { name: "not_found", message: "page " + id + " not found", entity: "page", id: id };
 }
 `.trim();
+
+export const findFrameById = `
+function findFrameById(doc, id) {
+  for (var i = 0; i < doc.pageItems.length; i++) {
+    if (String(doc.pageItems[i].id) === id) return doc.pageItems[i];
+  }
+  throw { name: "not_found", message: "frame " + id + " not found", entity: "frame", id: id };
+}
+`.trim();
+
+export const findStyleByName = `
+function findStyleByName(doc, name) {
+  var s = doc.paragraphStyles.itemByName(name);
+  if (!s.isValid) {
+    throw { name: "not_found", message: "paragraph style \\"" + name + "\\" not found", entity: "paragraph_style", id: name };
+  }
+  return s;
+}
+`.trim();
