@@ -29,6 +29,7 @@ import { setFrameColumnsTool } from "./tools/set-frame-columns.js";
 import { threadTextFramesTool } from "./tools/thread-text-frames.js";
 import { listFontsTool } from "./tools/list-fonts.js";
 import { createSwatchTool } from "./tools/create-swatch.js";
+import { duplicateFrameTool } from "./tools/duplicate-frame.js";
 
 async function main() {
   const logger = createLogger(defaultLogPath());
@@ -60,6 +61,7 @@ async function main() {
   registry.register(threadTextFramesTool);
   registry.register(listFontsTool);
   registry.register(createSwatchTool);
+  registry.register(duplicateFrameTool);
 
   const server = createServer({ registry, logger });
   const transport = new StdioServerTransport();
