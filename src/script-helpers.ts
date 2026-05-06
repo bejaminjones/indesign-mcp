@@ -3,9 +3,14 @@
  * in tool body scripts via `prelude(...)` from compose.ts.
  *
  * Each helper throws a structured object on failure: `{ name: "<kind>",
- * message: string, entity?: string, id?: string }`. The wrapExtendScript
- * outer catch currently flattens these to script_error — that's the next
- * Plan B1.5 task (#36).
+ * message: string, entity?: string, id?: string }`. wrapExtendScript's
+ * inner catch routes structured throws to kind-specific failure envelopes
+ * (e.g., `not_found`) when the `name` matches a known ErrorKind.
+ *
+ * `findFrameById` resolves via `.getElements()[0]`, so callers receive the
+ * typed subclass (TextFrame, Rectangle, etc.) rather than a generic
+ * PageItem wrapper. Consumers can rely on `.constructor.name` for type
+ * discrimination.
  */
 
 export const findDocumentById = `
