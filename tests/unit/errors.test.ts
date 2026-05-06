@@ -61,7 +61,7 @@ describe("envelope helpers", () => {
   });
 
   it("ok() accepts an optional document_state_delta", () => {
-    const delta = { new_frames: [{ id: "f1", type: "text" }], page_count: 2 };
+    const delta = { new_frames: [{ id: "f1", type: "text" as const }], page_count: 2 };
     const env = ok({ value: 1 }, { document_state_delta: delta });
     expect(env).toEqual({
       ok: true,
