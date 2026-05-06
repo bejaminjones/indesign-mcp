@@ -110,7 +110,9 @@ describe("thread_text_frames tool", () => {
 
     const [arg] = lastCall(vi.mocked(runScriptWithResultFile));
     // Script should check if frames are already threaded before assigning.
-    expect(arg.scriptTemplate).toContain("isValid");
+    // InDesign returns `null` for an unthreaded `nextTextFrame`.
+    expect(arg.scriptTemplate).toContain("!== null");
+    expect(arg.scriptTemplate).toContain("alreadyLinked");
   });
 
   it("includes TextFrame validation for both frames", async () => {

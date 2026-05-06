@@ -54,9 +54,9 @@ var frame = findFrameById(doc, ${lit(input.frame_id)});
 if (frame.constructor.name !== "TextFrame") {
   throw { name: "invalid_args", message: "frame " + ${lit(input.frame_id)} + " is not a text frame", entity: "frame", id: ${lit(input.frame_id)} };
 }
-var prevUnit = doc.viewPreferences.measurementUnit;
+var prevUnits = app.scriptPreferences.measurementUnit;
+app.scriptPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
 try {
-  doc.viewPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
   var tfp = frame.textFramePreferences;
   tfp.insetSpacing = [${top}, ${left}, ${bottom}, ${right}];
   var s = tfp.insetSpacing;
@@ -65,7 +65,7 @@ try {
     inset_mm: { top: s[0], left: s[1], bottom: s[2], right: s[3] }
   };
 } finally {
-  doc.viewPreferences.measurementUnit = prevUnit;
+  app.scriptPreferences.measurementUnit = prevUnits;
 }
 `;
 }

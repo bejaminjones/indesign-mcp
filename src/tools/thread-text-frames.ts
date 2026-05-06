@@ -50,7 +50,8 @@ var targetFrame = findFrameById(doc, ${lit(input.target_frame_id)});
 if (targetFrame.constructor.name !== "TextFrame") {
   throw { name: "invalid_args", message: "target frame " + ${lit(input.target_frame_id)} + " is not a text frame", entity: "frame", id: ${lit(input.target_frame_id)} };
 }
-var alreadyLinked = sourceFrame.nextTextFrame.isValid && String(sourceFrame.nextTextFrame.id) === String(targetFrame.id);
+var nextFrame = sourceFrame.nextTextFrame;
+var alreadyLinked = nextFrame !== null && String(nextFrame.id) === String(targetFrame.id);
 if (!alreadyLinked) {
   sourceFrame.nextTextFrame = targetFrame;
 }

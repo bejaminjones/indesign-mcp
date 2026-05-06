@@ -45,9 +45,9 @@ var frame = findFrameById(doc, ${lit(input.frame_id)});
 if (frame.constructor.name !== "TextFrame") {
   throw { name: "invalid_args", message: "frame " + ${lit(input.frame_id)} + " is not a text frame", entity: "frame", id: ${lit(input.frame_id)} };
 }
-var prevUnit = doc.viewPreferences.measurementUnit;
+var prevUnits = app.scriptPreferences.measurementUnit;
+app.scriptPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
 try {
-  doc.viewPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
   var tfp = frame.textFramePreferences;
   tfp.textColumnCount = ${input.count};
   tfp.textColumnGutter = ${gutter};
@@ -57,7 +57,7 @@ try {
     gutter_mm: tfp.textColumnGutter
   };
 } finally {
-  doc.viewPreferences.measurementUnit = prevUnit;
+  app.scriptPreferences.measurementUnit = prevUnits;
 }
 `;
 }
