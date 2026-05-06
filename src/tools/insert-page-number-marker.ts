@@ -1,0 +1,84 @@
+import { z } from "zod";
+import { defineTool } from "./registry.js";
+import { runScriptWithResultFile } from "../transport/result-file.js";
+import { wrapExtendScript, lit, prelude } from "../compose.js";
+import { findDocumentById, findFrameById } from "../script-helpers.js";
+import { ok } from "../errors.js";
+
+const InputSchema = z
+  .object({
+    frame_id: z.string().min(1),
+    position: z.enum(["start", "end"]).optional(),
+    document_id: z.string().optional(),
+  })
+  .strict();
+
+type Input = z.infer<typeof InputSchema>;
+
+const ScriptResultSchema = z.object({
+  frame_id: z.string(),
+  inserted_at: z.enum(["start", "end"]),
+});
+
+type ScriptResult = z.infer<typeof ScriptResultSchema>;
+
+interface Result {
+  frame_id: string;
+  inserted_at: "start" | "end";
+}
+
+function buildScriptBody(input: Input): string {
+  const docExpr =
+    input.document_id !== undefined
+      ? `findDocumentById(${lit(input.document_id)})`
+      : "app.activeDocument";
+
+  const position = input.position ?? "end";
+  const insertionPointExpr =
+    position === "start"
+      ? "frame.parentStory.insertionPoints[0]"
+      : "frame.parentStory.insertionPoints[-1]";
+
+  return `
+${prelude(findDocumentById, findFrameById)}
+var doc = ${docExpr};
+var frame = findFrameById(doc, ${lit(input.frame_id)});
+if (frame.constructor.name !== "TextFrame") {
+  throw {
+    name: "invalid_args",
+    message: "frame " + ${lit(input.frame_id)} + " is not a TextFrame",
+    entity: "frame",
+    id: ${lit(input.frame_id)}
+  };
+}
+${insertionPointExpr}.contents = SpecialCharacters.AUTO_PAGE_NUMBER;
+return {
+  frame_id: ${lit(input.frame_id)},
+  inserted_at: ${lit(position)}
+};
+`;
+}
+
+export const insertPageNumberMarkerTool = defineTool<Input, Result>({
+  name: "insert_page_number_marker",
+  description:
+    "Inserts an auto-page-number marker (SpecialCharacters.AUTO_PAGE_NUMBER) into a text frame. The marker renders as the current page number. Specify position \"start\" or \"end\" (default \"end\").",
+  inputSchema: InputSchema,
+  async handler(input) {
+    const env = await runScriptWithResultFile<ScriptResult>({
+      language: "JavaScript",
+      scriptTemplate: wrapExtendScript(buildScriptBody(input)),
+      resultSchema: ScriptResultSchema,
+    });
+    if (!env.ok) return env;
+    const r = env.result!;
+    return ok(
+      { frame_id: r.frame_id, inserted_at: r.inserted_at },
+      {
+        document_state_delta: {
+          changed_frames: [{ id: r.frame_id }],
+        },
+      },
+    );
+  },
+});
