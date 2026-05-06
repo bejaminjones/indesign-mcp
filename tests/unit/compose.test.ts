@@ -190,7 +190,11 @@ describe("wrapExtendScript", () => {
     // its own _stringify polyfill — simulating ExtendScript's pre-ES5 env.
     const sourceWithNoJSON = `JSON = undefined;\n${innerSource}`;
 
-    const result = new Script(sourceWithNoJSON).runInNewContext({});
+    const stubContext = {
+      app: { scriptPreferences: { userInteractionLevel: "INTERACT_WITH_ALL" } },
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    };
+    const result = new Script(sourceWithNoJSON).runInNewContext(stubContext);
     expect(typeof result).toBe("string");
     expect(JSON.parse(result as string)).toEqual({
       ok: true,
@@ -207,7 +211,10 @@ describe("wrapExtendScript", () => {
     const end = wrapped.indexOf(", { language", start);
     const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
 
-    const result = new Script(innerSource).runInNewContext({});
+    const result = new Script(innerSource).runInNewContext({
+      app: { scriptPreferences: { userInteractionLevel: "INTERACT_WITH_ALL" } },
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    });
     expect(typeof result).toBe("string");
     const env = JSON.parse(result as string);
     expect(env.ok).toBe(false);
@@ -224,7 +231,10 @@ describe("wrapExtendScript", () => {
     const end = wrapped.indexOf(", { language", start);
     const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
 
-    const result = new Script(innerSource).runInNewContext({});
+    const result = new Script(innerSource).runInNewContext({
+      app: { scriptPreferences: { userInteractionLevel: "INTERACT_WITH_ALL" } },
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    });
     const env = JSON.parse(result as string);
     expect(env.ok).toBe(false);
     expect(env.error.kind).toBe("script_error");
@@ -238,9 +248,80 @@ describe("wrapExtendScript", () => {
     const end = wrapped.indexOf(", { language", start);
     const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
 
-    const result = new Script(innerSource).runInNewContext({});
+    const result = new Script(innerSource).runInNewContext({
+      app: { scriptPreferences: { userInteractionLevel: "INTERACT_WITH_ALL" } },
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    });
     const env = JSON.parse(result as string);
     expect(env.ok).toBe(false);
     expect(env.error.kind).toBe("script_error");
+  });
+
+  it("pins userInteractionLevel to NEVER_INTERACT and restores it", () => {
+    const wrapped = wrapExtendScript(`return { x: 1 };`);
+
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    // Track userInteractionLevel changes through the run.
+    const levelHistory: string[] = [];
+    let currentLevel = "INTERACT_WITH_ALL";
+    const app = {
+      scriptPreferences: {
+        get userInteractionLevel() { return currentLevel; },
+        set userInteractionLevel(v: string) {
+          currentLevel = v;
+          levelHistory.push(v);
+        },
+      },
+    };
+
+    // Inject the necessary globals: `app` and `UserInteractionLevels` enum stub.
+    const context = {
+      app,
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    };
+
+    const result = new Script(innerSource).runInNewContext(context);
+
+    // The history should show: pinned to NEVER_INTERACT, then restored to original.
+    expect(levelHistory).toEqual(["NEVER_INTERACT", "INTERACT_WITH_ALL"]);
+    // And the run still produced a valid envelope.
+    const env = JSON.parse(result as string);
+    expect(env).toEqual({ ok: true, result: { x: 1 } });
+  });
+
+  it("restores userInteractionLevel even when the body throws", () => {
+    const wrapped = wrapExtendScript(`throw { name: "io_error", message: "disk full" };`);
+
+    const start = wrapped.indexOf("indd.doScript(") + "indd.doScript(".length;
+    const end = wrapped.indexOf(", { language", start);
+    const innerSource = JSON.parse(wrapped.slice(start, end)) as string;
+
+    const levelHistory: string[] = [];
+    let currentLevel = "INTERACT_WITH_ALL";
+    const app = {
+      scriptPreferences: {
+        get userInteractionLevel() { return currentLevel; },
+        set userInteractionLevel(v: string) {
+          currentLevel = v;
+          levelHistory.push(v);
+        },
+      },
+    };
+
+    const context = {
+      app,
+      UserInteractionLevels: { NEVER_INTERACT: "NEVER_INTERACT" },
+    };
+
+    const result = new Script(innerSource).runInNewContext(context);
+
+    // Even though the body threw, restoration must happen.
+    expect(levelHistory).toEqual(["NEVER_INTERACT", "INTERACT_WITH_ALL"]);
+    const env = JSON.parse(result as string);
+    expect(env.ok).toBe(false);
+    expect(env.error.kind).toBe("io_error");
   });
 });

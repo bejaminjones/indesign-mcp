@@ -92,23 +92,29 @@ export function wrapExtendScript(body: string): string {
     "timeout": true,
     "script_error": true
   };
+  var prevLevel = app.scriptPreferences.userInteractionLevel;
+  app.scriptPreferences.userInteractionLevel = UserInteractionLevels.NEVER_INTERACT;
   try {
-    var __r = (function() {
+    try {
+      var __r = (function() {
 ${body}
-    })();
-    return '{"ok":true,"result":' + _stringify(__r) + '}';
-  } catch (e) {
-    if (e && typeof e === "object" && knownKinds[e.name]) {
-      var kindName = e.name;
-      var errObj = { kind: kindName, message: String(e.message || e.name) };
-      if (e.entity) errObj.entity = String(e.entity);
-      if (e.id) errObj.id = String(e.id);
-      if (e.stack) errObj.stack = String(e.stack);
-      return _stringify({ ok: false, error: errObj });
+      })();
+      return '{"ok":true,"result":' + _stringify(__r) + '}';
+    } catch (e) {
+      if (e && typeof e === "object" && knownKinds[e.name]) {
+        var kindName = e.name;
+        var errObj = { kind: kindName, message: String(e.message || e.name) };
+        if (e.entity) errObj.entity = String(e.entity);
+        if (e.id) errObj.id = String(e.id);
+        if (e.stack) errObj.stack = String(e.stack);
+        return _stringify({ ok: false, error: errObj });
+      }
+      var msg = String(e.message || e);
+      var stk = String(e.stack || '');
+      return _stringify({ ok: false, error: { kind: "script_error", message: msg, stack: stk } });
     }
-    var msg = String(e.message || e);
-    var stk = String(e.stack || '');
-    return _stringify({ ok: false, error: { kind: "script_error", message: msg, stack: stk } });
+  } finally {
+    app.scriptPreferences.userInteractionLevel = prevLevel;
   }
 })();
 `;
