@@ -2,22 +2,18 @@ import { afterEach, it, expect } from "vitest";
 import { mkdtempSync, writeFileSync, existsSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { integrationGate, INTEGRATION_TIMEOUT_MS, closeAllDocuments } from "./helpers.js";
+import {
+  integrationGate,
+  INTEGRATION_TIMEOUT_MS,
+  closeAllDocuments,
+  tinyPngBytes,
+} from "./helpers.js";
 import { createDocumentTool } from "../../src/tools/create-document.js";
 import { createImageFrameTool } from "../../src/tools/create-image-frame.js";
 import { placeImageTool } from "../../src/tools/place-image.js";
 import { createRectangleTool } from "../../src/tools/create-rectangle.js";
 import { createLineTool } from "../../src/tools/create-line.js";
 import { exportPdfTool } from "../../src/tools/export-pdf.js";
-
-const TINY_PNG_BYTES = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
-  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
-  0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x62, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
-  0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
-]);
 
 integrationGate("Plan B3 end-to-end (integration)", () => {
   afterEach(async () => {
@@ -30,7 +26,7 @@ integrationGate("Plan B3 end-to-end (integration)", () => {
       const tmpDir = mkdtempSync(join(tmpdir(), "indesign-mcp-b3-"));
       const imagePath = join(tmpDir, "test.png");
       const pdfPath = join(tmpDir, "out.pdf");
-      writeFileSync(imagePath, TINY_PNG_BYTES);
+      writeFileSync(imagePath, tinyPngBytes());
 
       try {
         const create = await createDocumentTool.handler({
