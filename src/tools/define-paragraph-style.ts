@@ -17,7 +17,7 @@ const InputSchema = z
     color_hex: z.string().regex(HEX_COLOR_RE).optional(),
     space_before_pt: z.number().nonnegative().optional(),
     space_after_pt: z.number().nonnegative().optional(),
-    on_collision: z.enum(["error", "replace", "version"]).optional(),
+    on_collision: z.enum(["error", "update", "version"]).optional(),
     document_id: z.string().optional(),
   })
   .strict()
@@ -109,11 +109,20 @@ function buildScriptBody(input: Input): string {
           throw { name: "name_collision", message: "paragraph style \\"" + name + "\\" already exists", entity: "paragraph_style", id: name };
         }
         var style = doc.paragraphStyles.add({ name: name });
+        var outcome = "created";
       `
-      : onCollision === "replace"
+      : onCollision === "update"
         ? `
         var existing = doc.paragraphStyles.itemByName(name);
-        var style = existing.isValid ? existing : doc.paragraphStyles.add({ name: name });
+        var style;
+        var outcome;
+        if (existing.isValid) {
+          style = existing;
+          outcome = "updated";
+        } else {
+          style = doc.paragraphStyles.add({ name: name });
+          outcome = "created";
+        }
       `
         : `
         var baseName = name;
@@ -123,6 +132,7 @@ function buildScriptBody(input: Input): string {
           i++;
         }
         var style = doc.paragraphStyles.add({ name: name });
+        var outcome = "versioned";
       `;
 
   return `

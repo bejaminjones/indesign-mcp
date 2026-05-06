@@ -182,8 +182,8 @@ describe("define_paragraph_style tool", () => {
     expect(arg.scriptTemplate).toContain("Bold");
   });
 
-  it("accepts on_collision: 'replace' / 'version' / 'error'", () => {
-    for (const c of ["error", "replace", "version"] as const) {
+  it("accepts on_collision: 'update' / 'version' / 'error'", () => {
+    for (const c of ["error", "update", "version"] as const) {
       expect(
         defineParagraphStyleTool.inputSchema.safeParse({
           name: "Body",
