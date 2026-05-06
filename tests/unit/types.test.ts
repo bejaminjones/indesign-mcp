@@ -92,4 +92,35 @@ describe("DocumentStateDelta", () => {
     expect(delta.changed_frames?.[0].applied_parent_name).toBe("A-Footer");
     expect(delta.changed_frames?.[1].applied_parent_name).toBeUndefined();
   });
+
+  it("new_character_styles accepts an array of { name: string }", () => {
+    const delta: DocumentStateDelta = {
+      new_character_styles: [
+        { name: "Accent" },
+        { name: "Accent 2" },
+      ],
+    };
+    expect(delta.new_character_styles?.[0].name).toBe("Accent");
+    expect(delta.new_character_styles?.[1].name).toBe("Accent 2");
+  });
+
+  it("changed_frames items accept applied_character_style_range", () => {
+    const delta: DocumentStateDelta = {
+      changed_frames: [
+        {
+          id: "f1",
+          applied_character_style_range: {
+            character_style_name: "Accent",
+            start_index: 10,
+            end_index: 13,
+          },
+        },
+        { id: "f2", bounds: [0, 0, 50, 100] },
+      ],
+    };
+    expect(delta.changed_frames?.[0].applied_character_style_range?.character_style_name).toBe("Accent");
+    expect(delta.changed_frames?.[0].applied_character_style_range?.start_index).toBe(10);
+    expect(delta.changed_frames?.[0].applied_character_style_range?.end_index).toBe(13);
+    expect(delta.changed_frames?.[1].applied_character_style_range).toBeUndefined();
+  });
 });

@@ -10,14 +10,18 @@ export interface DocumentStateDelta {
     bounds?: [number, number, number, number];
     applied_paragraph_style?: string;
     applied_image_path?: string;
-    applied_parent_name?: string;        // NEW — from override_parent_item_on_page
+    applied_parent_name?: string;        // from override_parent_item_on_page
+    applied_character_style_range?: {    // from apply_character_style_to_range
+      character_style_name: string;
+      start_index: number;
+      end_index: number;
+    };
   }>;
   new_frames?: Array<{ id: FrameId; type: FrameType }>;
   removed_frame_ids?: FrameId[];
   new_page_ids?: string[];
   removed_page_ids?: string[];
   page_count?: number;
-  // NEW
   changed_pages?: Array<{
     id: string;
     applied_parent_name?: string;
@@ -26,6 +30,7 @@ export interface DocumentStateDelta {
     name: string;
     page_count: number;       // 1 (single) or 2 (facing)
   }>;
+  new_character_styles?: Array<{ name: string }>;   // from define_character_style
 }
 
 export interface SuccessEnvelope<T> {

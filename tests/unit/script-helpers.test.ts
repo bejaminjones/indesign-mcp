@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findDocumentById, findPageById, findFrameById, findStyleByName, resolveSwatch, findMasterSpreadByName } from "../../src/script-helpers.js";
+import { findDocumentById, findPageById, findFrameById, findStyleByName, resolveSwatch, findMasterSpreadByName, findCharacterStyleByName } from "../../src/script-helpers.js";
 import { prelude } from "../../src/compose.js";
 
 describe("script helpers", () => {
@@ -47,5 +47,12 @@ describe("script helpers", () => {
     expect(findMasterSpreadByName).toContain('throw { name: "not_found"');
     expect(findMasterSpreadByName).toContain("doc.masterSpreads.itemByName");
     expect(findMasterSpreadByName).toContain('"parent_spread"');
+  });
+
+  it("findCharacterStyleByName is a non-empty function declaration", () => {
+    expect(findCharacterStyleByName).toContain("function findCharacterStyleByName");
+    expect(findCharacterStyleByName).toContain('throw { name: "not_found"');
+    expect(findCharacterStyleByName).toContain("doc.characterStyles.itemByName");
+    expect(findCharacterStyleByName).toContain('"character_style"');
   });
 });
