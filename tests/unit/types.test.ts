@@ -58,4 +58,38 @@ describe("DocumentStateDelta", () => {
     };
     expect(badDelta.new_frames?.[0].type).toBe("bad");
   });
+
+  it("changed_pages accepts id and applied_parent_name", () => {
+    const delta: DocumentStateDelta = {
+      changed_pages: [
+        { id: "pg1", applied_parent_name: "A-Footer" },
+        { id: "pg2" },
+      ],
+    };
+    expect(delta.changed_pages?.[0].applied_parent_name).toBe("A-Footer");
+    expect(delta.changed_pages?.[1].applied_parent_name).toBeUndefined();
+  });
+
+  it("new_parent_spreads accepts name and page_count", () => {
+    const delta: DocumentStateDelta = {
+      new_parent_spreads: [
+        { name: "A-Footer", page_count: 2 },
+        { name: "B-Chapter", page_count: 1 },
+      ],
+    };
+    expect(delta.new_parent_spreads?.[0].name).toBe("A-Footer");
+    expect(delta.new_parent_spreads?.[0].page_count).toBe(2);
+    expect(delta.new_parent_spreads?.[1].page_count).toBe(1);
+  });
+
+  it("changed_frames items accept applied_parent_name", () => {
+    const delta: DocumentStateDelta = {
+      changed_frames: [
+        { id: "f1", applied_parent_name: "A-Footer" },
+        { id: "f2", bounds: [0, 0, 50, 100] },
+      ],
+    };
+    expect(delta.changed_frames?.[0].applied_parent_name).toBe("A-Footer");
+    expect(delta.changed_frames?.[1].applied_parent_name).toBeUndefined();
+  });
 });

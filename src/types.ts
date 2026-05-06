@@ -10,12 +10,22 @@ export interface DocumentStateDelta {
     bounds?: [number, number, number, number];
     applied_paragraph_style?: string;
     applied_image_path?: string;
+    applied_parent_name?: string;        // NEW — from override_parent_item_on_page
   }>;
   new_frames?: Array<{ id: FrameId; type: FrameType }>;
   removed_frame_ids?: FrameId[];
   new_page_ids?: string[];
   removed_page_ids?: string[];
   page_count?: number;
+  // NEW
+  changed_pages?: Array<{
+    id: string;
+    applied_parent_name?: string;
+  }>;
+  new_parent_spreads?: Array<{
+    name: string;
+    page_count: number;       // 1 (single) or 2 (facing)
+  }>;
 }
 
 export interface SuccessEnvelope<T> {

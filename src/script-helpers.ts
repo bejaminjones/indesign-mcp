@@ -32,6 +32,12 @@ function findPageById(doc, id) {
   for (var i = 0; i < doc.pages.length; i++) {
     if (String(doc.pages[i].id) === id) return doc.pages[i];
   }
+  for (var j = 0; j < doc.masterSpreads.length; j++) {
+    var ms = doc.masterSpreads[j];
+    for (var k = 0; k < ms.pages.length; k++) {
+      if (String(ms.pages[k].id) === id) return ms.pages[k];
+    }
+  }
   throw { name: "not_found", message: "page " + id + " not found", entity: "page", id: id };
 }
 `.trim();
@@ -50,6 +56,16 @@ function findStyleByName(doc, name) {
   var s = doc.paragraphStyles.itemByName(name);
   if (!s.isValid) {
     throw { name: "not_found", message: "paragraph style \\"" + name + "\\" not found", entity: "paragraph_style", id: name };
+  }
+  return s;
+}
+`.trim();
+
+export const findMasterSpreadByName = `
+function findMasterSpreadByName(doc, name) {
+  var s = doc.masterSpreads.itemByName(name);
+  if (!s.isValid) {
+    throw { name: "not_found", message: "parent spread \\"" + name + "\\" not found", entity: "parent_spread", id: name };
   }
   return s;
 }
