@@ -108,14 +108,12 @@ integrationGate("create_document (integration)", () => {
       const recto = pages.find((p) => p.side === "RIGHT_HAND" || p.side === "1281774162");
       const verso = pages.find((p) => p.side === "LEFT_HAND" || p.side === "1281971784");
 
-      // Note: InDesign may stringify PageSideOptions as the enum name or numeric value.
-      // If both are undefined, the test skips gracefully (wrong InDesign version).
-      if (recto && verso) {
-        expect(recto.left).toBeCloseTo(25, 1);   // inside
-        expect(recto.right).toBeCloseTo(15, 1);  // outside
-        expect(verso.left).toBeCloseTo(15, 1);   // outside
-        expect(verso.right).toBeCloseTo(25, 1);  // inside
-      }
+      expect(recto, `expected a RIGHT_HAND page, got sides: ${pages.map((p) => p.side).join(", ")}`).toBeDefined();
+      expect(verso, `expected a LEFT_HAND page, got sides: ${pages.map((p) => p.side).join(", ")}`).toBeDefined();
+      expect(recto!.left).toBeCloseTo(25, 1);   // inside
+      expect(recto!.right).toBeCloseTo(15, 1);  // outside
+      expect(verso!.left).toBeCloseTo(15, 1);   // outside
+      expect(verso!.right).toBeCloseTo(25, 1);  // inside
     },
     INTEGRATION_TIMEOUT_MS,
   );
