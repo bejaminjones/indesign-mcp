@@ -2,7 +2,8 @@ import { z } from "zod";
 import { resolve } from "node:path";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
-import { wrapExtendScript, lit } from "../compose.js";
+import { wrapExtendScript, lit, prelude } from "../compose.js";
+import { findDocumentById } from "../script-helpers.js";
 
 const InputSchema = z
   .object({
@@ -40,16 +41,11 @@ function buildScriptBody(input: Input, absolutePath: string | undefined): string
       `;
 
   return `
-    function findDocumentById(id) {
-      for (var i = 0; i < app.documents.length; i++) {
-        if (String(app.documents[i].id) === id) return app.documents[i];
-      }
-      throw { name: "not_found", message: "document " + id + " not found", entity: "document", id: id };
-    }
-    var doc = ${docExpr};
-    ${saveCall}
-    return { path: String(doc.fullName) };
-  `;
+${prelude(findDocumentById)}
+var doc = ${docExpr};
+${saveCall}
+return { path: String(doc.fullName) };
+`;
 }
 
 export const saveDocumentTool = defineTool<Input, Result>({

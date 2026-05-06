@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
-import { wrapExtendScript, lit } from "../compose.js";
+import { wrapExtendScript, lit, prelude } from "../compose.js";
+import { findDocumentById, findPageById } from "../script-helpers.js";
 import { ok } from "../errors.js";
 
 const AfterPageId = z.object({ after_page_id: z.string() }).strict();
@@ -56,30 +57,19 @@ function buildScriptBody(input: Input): string {
   }
 
   return `
-    function findDocumentById(id) {
-      for (var i = 0; i < app.documents.length; i++) {
-        if (String(app.documents[i].id) === id) return app.documents[i];
-      }
-      throw { name: "not_found", message: "document " + id + " not found", entity: "document", id: id };
-    }
-    function findPageById(doc, id) {
-      for (var i = 0; i < doc.pages.length; i++) {
-        if (String(doc.pages[i].id) === id) return doc.pages[i];
-      }
-      throw { name: "not_found", message: "page " + id + " not found", entity: "page", id: id };
-    }
-    var doc = ${docExpr};
-    ${insertion}
-    var idx = -1;
-    for (var i = 0; i < doc.pages.length; i++) {
-      if (doc.pages[i].id === newPage.id) { idx = i; break; }
-    }
-    return {
-      new_page_id: String(newPage.id),
-      position_index: idx,
-      page_count: doc.pages.length
-    };
-  `;
+${prelude(findDocumentById, findPageById)}
+var doc = ${docExpr};
+${insertion}
+var idx = -1;
+for (var i = 0; i < doc.pages.length; i++) {
+  if (doc.pages[i].id === newPage.id) { idx = i; break; }
+}
+return {
+  new_page_id: String(newPage.id),
+  position_index: idx,
+  page_count: doc.pages.length
+};
+`;
 }
 
 export const addPageTool = defineTool<Input, Result>({

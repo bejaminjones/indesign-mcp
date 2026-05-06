@@ -57,6 +57,16 @@ const ES_STRINGIFY = String.raw`function _stringify(v) {
 }`;
 
 /**
+ * Joins a sequence of ExtendScript helper sources with newlines, suitable
+ * for prepending to a tool's body string. Use:
+ *
+ *   const body = prelude(findDocumentById, findPageById) + `var doc = findDocumentById(${lit(id)}); ...`;
+ */
+export function prelude(...sources: string[]): string {
+  return sources.join("\n") + "\n";
+}
+
+/**
  * Wraps an ExtendScript body in a JXA shell that dispatches to InDesign.
  *
  * Body must end with `return <value>;` — it's invoked inside an IIFE.
