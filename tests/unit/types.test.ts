@@ -163,4 +163,24 @@ describe("DocumentStateDelta", () => {
     expect(delta.changed_frames?.[0].threaded_to_frame_id).toBe("f2");
     expect(delta.changed_frames?.[1].threaded_to_frame_id).toBeUndefined();
   });
+
+  it("new_paragraph_styles accepts an array of { name: string }", () => {
+    const delta: DocumentStateDelta = {
+      new_paragraph_styles: [
+        { name: "Body" },
+        { name: "Headline" },
+      ],
+    };
+    expect(delta.new_paragraph_styles?.[0].name).toBe("Body");
+    expect(delta.new_paragraph_styles?.[1].name).toBe("Headline");
+  });
+
+  it("new_swatches accepts an array of { name: string }", () => {
+    const delta: DocumentStateDelta = {
+      new_swatches: [
+        { name: "Brand Orange" },
+      ],
+    };
+    expect(delta.new_swatches?.[0].name).toBe("Brand Orange");
+  });
 });
