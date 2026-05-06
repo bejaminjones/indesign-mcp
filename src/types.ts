@@ -16,6 +16,9 @@ export interface DocumentStateDelta {
       start_index: number;
       end_index: number;
     };
+    inset_mm?: { top: number; left: number; bottom: number; right: number };  // from set_frame_inset
+    columns?: { count: number; gutter_mm: number };                           // from set_frame_columns
+    threaded_to_frame_id?: FrameId;                                           // from thread_text_frames
   }>;
   new_frames?: Array<{ id: FrameId; type: FrameType }>;
   removed_frame_ids?: FrameId[];
