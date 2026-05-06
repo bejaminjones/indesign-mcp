@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resolve } from "node:path";
+import { resolveUserPath } from "../path-utils.js";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
 import { wrapExtendScript, lit, prelude } from "../compose.js";
@@ -50,7 +50,7 @@ export const exportPdfTool = defineTool<Input, Result>({
     "Exports an InDesign document to PDF using the [High Quality Print] preset. Returns the absolute output path and exported page count.",
   inputSchema: InputSchema,
   async handler(input) {
-    const absolutePath = resolve(input.path);
+    const absolutePath = resolveUserPath(input.path);
     const body = buildScriptBody(input, absolutePath);
     return runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",

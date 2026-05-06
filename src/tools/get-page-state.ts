@@ -22,7 +22,7 @@ const BoundsMmSchema = z.object({
 
 const FrameSchema = z.object({
   id: z.string(),
-  type: z.enum(["text", "image", "rectangle"]),
+  type: z.enum(["text", "image", "rectangle", "line"]),
   bounds_mm: BoundsMmSchema,
   paragraph_style_name: z.string().optional(),
   text_snippet: z.string().optional(),
@@ -80,6 +80,8 @@ try {
       } else {
         frameType = "rectangle";
       }
+    } else if (ctor === "GraphicLine") {
+      frameType = "line";
     } else {
       continue;
     }

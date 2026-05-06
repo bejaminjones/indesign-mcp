@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resolve } from "node:path";
+import { resolveUserPath } from "../path-utils.js";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
 import { wrapExtendScript, lit, prelude } from "../compose.js";
@@ -54,7 +54,7 @@ export const saveDocumentTool = defineTool<Input, Result>({
     "Saves an InDesign document to disk. With `path`, performs a save-as. Without, saves to the document's current path (returns io_error if the document has no path yet).",
   inputSchema: InputSchema,
   async handler(input) {
-    const absolutePath = input.path !== undefined ? resolve(input.path) : undefined;
+    const absolutePath = input.path !== undefined ? resolveUserPath(input.path) : undefined;
     const body = buildScriptBody(input, absolutePath);
     return runScriptWithResultFile<ScriptResult>({
       language: "JavaScript",

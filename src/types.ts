@@ -2,13 +2,16 @@ export type FrameId = string;
 export type StyleId = string;
 export type DocumentId = string;
 
+export type FrameType = "text" | "image" | "rectangle" | "line";
+
 export interface DocumentStateDelta {
   changed_frames?: Array<{
     id: FrameId;
     bounds?: [number, number, number, number];
     applied_paragraph_style?: string;
+    applied_image_path?: string;
   }>;
-  new_frames?: Array<{ id: FrameId; type: string }>;
+  new_frames?: Array<{ id: FrameId; type: FrameType }>;
   removed_frame_ids?: FrameId[];
   new_page_ids?: string[];
   removed_page_ids?: string[];

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defineTool } from "./registry.js";
 import { runScriptWithResultFile } from "../transport/result-file.js";
 import { wrapExtendScript, lit, prelude } from "../compose.js";
-import { findDocumentById } from "../script-helpers.js";
+import { findDocumentById, resolveSwatch } from "../script-helpers.js";
 
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
@@ -42,14 +42,6 @@ interface Result {
   swatch_id?: string;
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const upper = hex.toUpperCase();
-  return [
-    parseInt(upper.slice(1, 3), 16),
-    parseInt(upper.slice(3, 5), 16),
-    parseInt(upper.slice(5, 7), 16),
-  ];
-}
 
 function buildScriptBody(input: Input): string {
   const docExpr =
@@ -65,19 +57,8 @@ function buildScriptBody(input: Input): string {
   let colorSetup = "var swatchId;";
   if (input.color_hex !== undefined) {
     const upperHex = input.color_hex.toUpperCase();
-    const swatchName = `auto-${upperHex}`;
-    const [r, g, b] = hexToRgb(upperHex);
     colorSetup = `
-      var swatchName = ${lit(swatchName)};
-      var swatch = doc.colors.itemByName(swatchName);
-      if (!swatch.isValid) {
-        swatch = doc.colors.add({
-          name: swatchName,
-          model: ColorModel.PROCESS,
-          space: ColorSpace.RGB,
-          colorValue: [${r}, ${g}, ${b}]
-        });
-      }
+      var swatch = resolveSwatch(doc, ${lit(upperHex)});
       var swatchId = String(swatch.id);
     `;
   }
@@ -145,7 +126,7 @@ function buildScriptBody(input: Input): string {
       `;
 
   return `
-${prelude(findDocumentById)}
+${prelude(findDocumentById, resolveSwatch)}
 var doc = ${docExpr};
 var name = ${lit(input.name)};
 ${collisionBlock}

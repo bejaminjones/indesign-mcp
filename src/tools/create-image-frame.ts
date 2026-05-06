@@ -1,0 +1,88 @@
+import { z } from "zod";
+import { defineTool } from "./registry.js";
+import { runScriptWithResultFile } from "../transport/result-file.js";
+import { wrapExtendScript, lit, prelude } from "../compose.js";
+import { findDocumentById, findPageById } from "../script-helpers.js";
+import { ok } from "../errors.js";
+
+const InputSchema = z
+  .object({
+    page_id: z.string(),
+    bounds_mm: z.object({
+      x: z.number().nonnegative(),
+      y: z.number().nonnegative(),
+      width: z.number().positive(),
+      height: z.number().positive(),
+    }),
+    document_id: z.string().optional(),
+  })
+  .strict();
+
+type Input = z.infer<typeof InputSchema>;
+
+const ScriptResultSchema = z.object({
+  frame_id: z.string(),
+  page_id: z.string(),
+});
+
+type ScriptResult = z.infer<typeof ScriptResultSchema>;
+
+interface Result {
+  frame_id: string;
+  page_id: string;
+}
+
+function buildScriptBody(input: Input): string {
+  const docExpr =
+    input.document_id !== undefined
+      ? `findDocumentById(${lit(input.document_id)})`
+      : "app.activeDocument";
+
+  const { x, y, width, height } = input.bounds_mm;
+  const y2 = y + height;
+  const x2 = x + width;
+
+  return `
+${prelude(findDocumentById, findPageById)}
+var prevUnits = app.scriptPreferences.measurementUnit;
+app.scriptPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
+try {
+  var doc = ${docExpr};
+  var page = findPageById(doc, ${lit(input.page_id)});
+  var frame = page.rectangles.add({
+    geometricBounds: [${y}, ${x}, ${y2}, ${x2}]
+  });
+  frame.frameFittingOptions.fittingOnEmptyFrame = EmptyFrameFittingOptions.FILL_PROPORTIONALLY;
+  return {
+    frame_id: String(frame.id),
+    page_id: ${lit(input.page_id)}
+  };
+} finally {
+  app.scriptPreferences.measurementUnit = prevUnits;
+}
+`;
+}
+
+export const createImageFrameTool = defineTool<Input, Result>({
+  name: "create_image_frame",
+  description:
+    "Creates an empty rectangle on a specified page (bounds in mm), configured so a future place_image call auto-fits the placed graphic. Returns the frame and page IDs.",
+  inputSchema: InputSchema,
+  async handler(input) {
+    const env = await runScriptWithResultFile<ScriptResult>({
+      language: "JavaScript",
+      scriptTemplate: wrapExtendScript(buildScriptBody(input)),
+      resultSchema: ScriptResultSchema,
+    });
+    if (!env.ok) return env;
+    const r = env.result!;
+    return ok(
+      { frame_id: r.frame_id, page_id: r.page_id },
+      {
+        document_state_delta: {
+          new_frames: [{ id: r.frame_id, type: "rectangle" }],
+        },
+      },
+    );
+  },
+});
