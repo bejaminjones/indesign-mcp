@@ -3,7 +3,14 @@
 MCP server bridging Claude to Adobe InDesign 2026. v1 dispatches ExtendScript
 via macOS `osascript`. UXP plugin upgrade deferred to v2.
 
-See `docs/superpowers/specs/2026-05-05-indesign-mcp-design.md` for the design spec.
+26 tools live across document lifecycle, text + paragraph styles, visuals &
+geometry, parent pages & page numbers, inline character styling, frame
+refinements, and read/utility helpers. Verified by 415 unit tests + 79 live
+integration tests against InDesign 2026 (21.3.0.60).
+
+See `docs/PROJECT_STATE.md` for current status, conventions, and what's not
+yet shipped. See `docs/superpowers/specs/` and `docs/superpowers/plans/` for
+the design specs and implementation plans behind each iteration.
 
 ## Requirements
 
@@ -85,8 +92,7 @@ The server appends one JSON line per event to:
 Useful for diagnosing "Claude said it did X, but X didn't happen" cases —
 the log captures the composed ExtendScript and the raw return.
 
-## What's next
+## Status
 
-Plan A (this milestone) ships only one tool, `get_app_version`. Plan B will
-add the POC tool surface from the design spec: `create_document`,
-`create_text_frame`, `place_image`, etc.
+All seven implementation plans (B1 through B7) are merged. See
+`docs/PROJECT_STATE.md` for the tool inventory and what isn't shipped yet.
