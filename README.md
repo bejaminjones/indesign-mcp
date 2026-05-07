@@ -48,7 +48,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "indesign-mcp": {
       "command": "node",
-      "args": ["/Users/benjones/Documents/GitHub/indesign-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/indesign-mcp/dist/index.js"]
     }
   }
 }
@@ -66,7 +66,7 @@ Add to `~/.claude/settings.json` (or your project's `.claude/settings.json`):
   "mcpServers": {
     "indesign-mcp": {
       "command": "node",
-      "args": ["/Users/benjones/Documents/GitHub/indesign-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/indesign-mcp/dist/index.js"]
     }
   }
 }
