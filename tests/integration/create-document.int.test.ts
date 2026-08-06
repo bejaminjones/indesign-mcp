@@ -68,20 +68,30 @@ integrationGate("create_document (integration)", () => {
       expect(env.ok).toBe(true);
       if (!env.ok) return;
 
-      // Query each page's margin prefs via a script
+      // Query each page's margin prefs via a script.
+      // measurementUnit MUST be forced to MILLIMETERS before reading margin
+      // prefs: the ambient unit is typically MeasurementUnits.AUTO, which
+      // defers to the document ruler (picas by default), so an unforced read
+      // returns picas and the mm assertions below fail.
       const body = `
-        var doc = app.activeDocument;
-        var result = [];
-        for (var i = 0; i < doc.pages.length; i++) {
-          var p = doc.pages[i];
-          result.push({
-            id: String(p.id),
-            side: String(p.side),
-            left: p.marginPreferences.left,
-            right: p.marginPreferences.right
-          });
+        var prevUnits = app.scriptPreferences.measurementUnit;
+        app.scriptPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
+        try {
+          var doc = app.activeDocument;
+          var result = [];
+          for (var i = 0; i < doc.pages.length; i++) {
+            var p = doc.pages[i];
+            result.push({
+              id: String(p.id),
+              side: String(p.side),
+              left: p.marginPreferences.left,
+              right: p.marginPreferences.right
+            });
+          }
+          return { pages: result };
+        } finally {
+          app.scriptPreferences.measurementUnit = prevUnits;
         }
-        return { pages: result };
       `;
       const { wrapExtendScript } = await import("../../src/compose.js");
       const { runScriptWithResultFile } = await import("../../src/transport/result-file.js");
