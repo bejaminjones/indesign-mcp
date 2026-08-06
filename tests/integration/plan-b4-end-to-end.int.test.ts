@@ -50,19 +50,29 @@ integrationGate("Plan B4 end-to-end (integration)", () => {
 
         const marginQuery = await runScriptWithResultFile<MarginQuery>({
           language: "JavaScript",
+          // measurementUnit MUST be forced to MILLIMETERS before reading margin
+          // prefs: the ambient unit is typically MeasurementUnits.AUTO, which
+          // defers to the document ruler (picas by default), so an unforced
+          // read returns picas and the mm assertions below fail.
           scriptTemplate: wrapExtendScript(`
-            var doc = app.activeDocument;
-            var result = [];
-            for (var i = 0; i < Math.min(doc.pages.length, 2); i++) {
-              var p = doc.pages[i];
-              result.push({
-                id: String(p.id),
-                side: String(p.side),
-                left: p.marginPreferences.left,
-                right: p.marginPreferences.right
-              });
+            var prevUnits = app.scriptPreferences.measurementUnit;
+            app.scriptPreferences.measurementUnit = MeasurementUnits.MILLIMETERS;
+            try {
+              var doc = app.activeDocument;
+              var result = [];
+              for (var i = 0; i < Math.min(doc.pages.length, 2); i++) {
+                var p = doc.pages[i];
+                result.push({
+                  id: String(p.id),
+                  side: String(p.side),
+                  left: p.marginPreferences.left,
+                  right: p.marginPreferences.right
+                });
+              }
+              return { pages: result };
+            } finally {
+              app.scriptPreferences.measurementUnit = prevUnits;
             }
-            return { pages: result };
           `),
           resultSchema: MarginQuerySchema,
         });
